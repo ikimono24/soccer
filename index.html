@@ -2087,7 +2087,7 @@ function renderTitle() {
       ${cont}${cloudBtn}
       <button class="btn ${loc ? "" : "primary"} wide" data-act="new-career">新しく始める<small>実在クラブを選んで監督に就任</small></button>
       ${loc ? `<p class="muted small">新しく始めると端末内のセーブは上書きされます。</p>` : ""}
-      <label class="btn ghost wide filebtn">セーブファイルを読み込む<small>PC版の savegame.json も使えます</small><input type="file" id="fileIn" accept=".json,application/json"></label>
+      <label class="btn ghost wide filebtn">セーブファイルを読み込む<small>書き出したセーブ・PC版の savegame.json</small><input type="file" id="fileIn" accept=".json,application/json"></label>
     </div></div>`;
 }
 
@@ -2363,6 +2363,7 @@ function renderHistory() {
     `<div class="ch-row"><h3 class="sh">${st === "goals" ? "得点王" : "アシスト王"}</h3>${statSeg()}</div>${scorerList(rows, st === "goals" ? "点" : "A")}`;
 }
 
+const HAS_CLOUD = () => !!(window.claude && window.claude.use);
 function renderMenu() {
   const m = me(); const f = m.facilities;
   const cloud = Cloud.ready ? (Cloud.meta ? `クラウド保存: ${new Date(Cloud.meta.savedAt).toLocaleString("ja-JP")}` : "クラウド保存: まだありません") : "クラウド保存は claude.ai 上で開いたときに使えます";
@@ -2371,14 +2372,14 @@ function renderMenu() {
       <dl class="kv"><dt>資金</dt><dd class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</dd><dt>所属</dt><dd>${h(leagueName(G.country, m.division))} ${myRank()}位</dd><dt>シーズン</dt><dd>${G.season_year}/${G.season_year + 1}</dd>
       <dt>施設</dt><dd>医療 Lv${f.medical} · ジム Lv${f.training} · ユース Lv${f.youth}</dd></dl></section>
     <section class="card"><h2 class="ch">セーブ</h2>
-      <p class="muted small">1日進むごとに端末に自動保存し、毎週月曜にクラウドへも保存します。</p>
+      <p class="muted small">${HAS_CLOUD() ? "1日進むごとに端末に自動保存し、毎週月曜にクラウドへも保存します。" : "1日進むごとにこのスマホ（ブラウザ）の中に自動保存します。ブラウザのデータを消去するとセーブも消えるので、ときどき「ファイルに書き出す」でバックアップしてください。"}</p>
       <button class="btn primary wide" data-act="save">今すぐセーブ</button>
-      <p class="muted small">${cloud}</p>
+      ${HAS_CLOUD() ? `<p class="muted small">${cloud}</p>` : ""}
       <button class="btn wide" data-act="export">ファイルに書き出す</button>
-      <p class="muted small">別の端末で続けたいときや、念のためのバックアップに使えます。</p>
+      <p class="muted small">${HAS_CLOUD() ? "別の端末で続けたいときや、念のためのバックアップに使えます。" : "セーブファイルがダウンロードフォルダに保存されます。別の端末で続けるときは、そのファイルをタイトル画面の「セーブファイルを読み込む」で読み込みます。"}</p>
     </section>
     <section class="card"><h2 class="ch">エンブレム画像</h2>
-      <p class="muted small">クラブごとに、スマホに保存してある画像をエンブレムとして設定できます。</p>
+      <p class="muted small">クラブごとに、スマホに保存してある画像をエンブレムとして設定できます。${HAS_CLOUD() ? "" : "設定した画像はこのスマホの中だけに保存されます。"}</p>
       <button class="btn wide" data-act="sheet" data-arg="crests">クラブ一覧から設定する</button></section>
     <section class="card"><h2 class="ch">その他</h2>
       <button class="btn ghost wide" data-act="to-title">タイトルへ戻る</button>
@@ -2468,7 +2469,7 @@ const SHEETS = {
     const segs = COUNTRIES.flatMap(c => [1, 2].map(d => [c.id + d, c.leagues[d - 1]]));
     const list = G ? keyTeams(key).map(t => t.name) : (COUNTRIES.find(c => c.id === key.slice(0, 3))[key[3] === "1" ? "d1" : "d2"].map(x => x[0]));
     const nSet = Object.keys(CREST_IMG).length;
-    return { title: "エンブレム画像", body: `<p class="muted small">クラブをタップして、スマホに保存してある画像を選びます。画像は96pxに縮めて保存し、claude.ai で開いているときは他の端末にも同期します（設定済み ${nSet} クラブ）。</p>
+    return { title: "エンブレム画像", body: `<p class="muted small">クラブをタップして、スマホに保存してある画像を選びます。画像は96pxに縮めて${HAS_CLOUD() ? "保存し、他の端末にも同期します" : "このスマホの中に保存します"}（設定済み ${nSet} クラブ）。</p>
       <div class="chiprow">${segs.map(([k, l]) => `<button class="${k === key ? "on" : ""}" data-act="crest-league" data-arg="${k}">${h(l)}</button>`).join("")}</div>
       <div class="crestgrid">${list.map(n => `<button class="crestcell ${CREST_IMG[n] ? "set" : ""}" data-act="crest-pick" data-arg="${h(n)}">${crest(n, 44)}<span>${h(n)}</span></button>`).join("")}</div>` };
   },
