@@ -505,6 +505,27 @@ body.live-on { overflow: hidden; }
 .legendbox b { font-size: 14px; }
 .legendbox span { font-size: 12.5px; color: var(--muted); }
 
+/* ---- 今週のカレンダー ---- */
+.week { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 10px 8px; display: grid; gap: 8px; }
+.week-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; font-size: 12.5px; color: var(--muted); padding: 0 2px; }
+.week-head .ym { font-weight: 700; color: var(--ink); letter-spacing: .04em; }
+.week-head .nm b { color: var(--ink); }
+.week-days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.week-days li { display: grid; justify-items: center; gap: 1px; padding: 5px 0 6px; border-radius: 8px; background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.week-days .wd { font-size: 11px; color: var(--muted); }
+.week-days b { font-family: var(--f-num); font-size: 18px; line-height: 1.1; }
+.week-days em { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.week-days li.league em, .week-days li.cup em { color: var(--accent-ink); background: var(--accent); padding: 0 5px; border-radius: 4px; font-weight: 700; }
+.week-days li.rest em { color: var(--good); }
+.week-days li.past { opacity: .45; }
+.week-days li.today { background: var(--pitch); color: #fff; box-shadow: 0 0 0 2px color-mix(in srgb, var(--pitch) 35%, transparent); opacity: 1; }
+.week-days li.today .wd, .week-days li.today em { color: rgba(255,255,255,.85); }
+.week-days li.today.league em, .week-days li.today.cup em { color: var(--accent-ink); }
+/* ---- 画面下に固定する「次へ進む」ボタン ---- */
+.nextbar { position: fixed; left: 0; right: 0; bottom: calc(57px + env(safe-area-inset-bottom, 0px)); z-index: 19; max-width: 560px; margin: 0 auto; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); border-top: 1px solid var(--line); }
+.nextbar .btn { min-height: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+#app:has(.nextbar) { padding-bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+
 </style>
 </head>
 <body>
@@ -3722,11 +3743,12 @@ function renderHome() {
   const d = G.day, m = me();
   const feed = d.logs.length ? `<section class="card"><h2 class="ch">今日のできごと</h2>${logList(d.logs)}</section>` : "";
   if (d.phase === "season_end") return renderSeasonEnd();
+  const wk = weekStrip();
   if (d.phase === "weekday") {
     const sl = m.scout_status === "SEARCHING" ? `調査中 あと${m.scout_timer}日` : m.scout_status === "READY" ? "★報告あり" : "派遣する";
     const nextMatch = nextFixtureText();
-    return `${offerBlock()}
-      <section class="day-hero"><span class="dow">${DOW[weekday(D(G.date))]}</span><div><b>練習日</b><small>${nextMatch}</small></div></section>
+    return `${wk}${offerBlock()}
+      <section class="day-hero"><span class="dow">${DOW[weekday(D(G.date))]}</span><div><b>練習日</b><small>練習メニューを選ぶと1日が進みます</small></div></section>
       <section class="card"><h2 class="ch">今日の練習<small>選ぶと1日が進みます</small></h2>
         <div class="grid2">
           <button class="act" data-act="train" data-arg="1"><b>攻撃特訓</b><small>若手1人の決定力UP／全員 体力-12</small></button>
@@ -3743,25 +3765,68 @@ function renderHome() {
           <button class="act sm" data-act="sheet" data-arg="formation"><b>戦術</b><small>${m.formation}</small></button>
           <button class="act sm ${m.scout_status === "READY" ? "hot" : ""}" data-act="sheet" data-arg="scout"><b>スカウト</b><small>${sl}</small></button>
           <button class="act sm" data-act="sheet" data-arg="facility"><b>施設</b><small>Lv ${m.facilities.medical}/${m.facilities.training}/${m.facilities.youth}</small></button>
-        </div></section>`;
+        </div></section>
+      ${nextBar("rest", "休養して次の日へ", "", false)}`;
   }
   if (d.phase === "saturday") {
-    if (!d.isMatch) return `<section class="day-hero"><span class="dow">土</span><div><b>試合はありません</b><small>${myLeague().round === 0 ? "リーグ戦開幕まであと少しです。" : leagueDone(myKey()) ? "今季のリーグ戦は全日程を終えました。" : "オフシーズンです。"}</small></div></section>${feed}${abroadBlock(d.bg)}<button class="btn primary wide" data-act="end-day">日曜日へ</button>`;
-    if (!d.played) return matchPrep("league") + feed;
-    return matchResult("league");
+    if (!d.isMatch) return `${wk}<section class="day-hero"><span class="dow">土</span><div><b>試合はありません</b><small>${myLeague().round === 0 ? "リーグ戦開幕まであと少しです。" : leagueDone(myKey()) ? "今季のリーグ戦は全日程を終えました。" : "オフシーズンです。"}</small></div></section>${feed}${abroadBlock(d.bg)}${nextBar("end-day", "日曜日へ")}`;
+    if (!d.played) return wk + matchPrep("league") + feed;
+    return wk + matchResult("league");
   }
   if (d.phase === "cup") {
-    if (!d.played) return matchPrep("cup") + feed;
-    return matchResult("cup");
+    if (!d.played) return wk + matchPrep("cup") + feed;
+    return wk + matchResult("cup");
   }
   if (d.phase === "sunday") {
-    return `${offerBlock()}
+    return `${wk}${offerBlock()}
       <section class="day-hero"><span class="dow">日</span><div><b>休養日</b><small>${d.window ? "移籍市場オープン中（1・7・8月）" : "移籍市場は閉まっています"}</small></div></section>
       ${feed}
       ${d.window ? `<button class="btn wide" data-act="sheet" data-arg="market">移籍リストを見る</button>` : ""}
-      <button class="btn primary wide" data-act="end-week">新しい一週間へ</button>`;
+      ${nextBar("end-week", "新しい一週間へ")}`;
   }
   return feed;
+}
+
+// ---------------- 日程の見える化 ----------------
+// その日の自分の予定：league（リーグ戦）/ cup（カップ戦）/ rest（日曜・休養日）/ train（練習日）/ free（試合のない土曜）/ off（オフ）
+function dayKind(ds) {
+  const d = D(ds), wd = weekday(d), mo = d.getUTCMonth() + 1, st = myLeague();
+  if (st && st.dates && st.dates.includes(ds)) return { k: "league", label: `リーグ第${st.dates.indexOf(ds) + 1}節`, icon: "⚽" };
+  const cr = cupDates(G.season_year)[ds];
+  if (cr && wd === 2 && (ds <= G.date || G.cup_teams.includes(G.myIdx))) return { k: "cup", label: `${CUP_NAME} ${cr}`, icon: "🏆" };
+  if (mo === 5 || mo === 6) { if (seasonEndCond()) return { k: "off", label: "オフシーズン", icon: "" }; }
+  if (wd === 6) return { k: "rest", label: "休養日", icon: "" };
+  if (wd === 5) return { k: "free", label: "試合なし", icon: "" };
+  return { k: "train", label: "練習日", icon: "" };
+}
+function nextMatchInfo() {
+  for (let i = 0; i <= 120; i++) {
+    const ds = addDays(G.date, i), k = dayKind(ds);
+    if (k.k === "league" || k.k === "cup") {
+      if (i === 0 && G.day && G.day.played) continue;
+      return { ds, days: i, ...k };
+    }
+  }
+  return null;
+}
+// 今週（月〜日）のカレンダー
+function weekStrip() {
+  const today = G.date, mon = addDays(today, -weekday(D(today)));
+  const cells = Array.from({ length: 7 }, (_, i) => {
+    const ds = addDays(mon, i), k = dayKind(ds), d = D(ds);
+    const cls = [ds === today ? "today" : ds < today ? "past" : "", k.k].join(" ");
+    return `<li class="${cls}"><span class="wd">${DOW[i]}</span><b>${d.getUTCDate()}</b><em>${k.k === "league" ? "試合" : k.k === "cup" ? "杯" : k.k === "rest" ? "休" : k.k === "train" ? "練習" : k.k === "off" ? "オフ" : "—"}</em></li>`;
+  }).join("");
+  const nm = nextMatchInfo();
+  const nmText = nm ? (nm.days === 0 ? `今日は <b>${h(nm.label)}</b>` : `次の試合 <b>${shortDate(nm.ds)} ${h(nm.label)}</b>（あと${nm.days}日）`) : "今季の公式戦はすべて終わりました";
+  const d = D(today);
+  return `<section class="week"><div class="week-head"><span class="ym">${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月</span><span class="nm">${nmText}</span></div><ol class="week-days">${cells}</ol></section>`;
+}
+// 画面下に固定する「次へ進む」ボタン。sub に次の日の予定を出す
+function nextBar(act, label, arg = "", primary = true) {
+  const tm = addDays(G.date, 1), k = dayKind(tm);
+  const sub = act === "end-week" ? `${shortDate(tm)} から新しい週` : `${shortDate(tm)} ${k.label}`;
+  return `<div class="nextbar"><button class="btn ${primary ? "primary" : ""} wide" data-act="${act}"${arg ? ` data-arg="${arg}"` : ""}>${label}<small>${h(sub)}</small></button></div>`;
 }
 
 function nextFixtureText() {
@@ -3845,7 +3910,7 @@ function matchResult(kind) {
     list = `<section class="card"><h2 class="ch">${h(d.my.label)} 試合結果</h2><ul class="scores">${d.results.map(r => `<li class="${r.mine ? "mine" : ""}"><span>${h(r.home)}</span><b>${r.hs} - ${r.as}</b><span>${h(r.away)}</span></li>`).join("")}</ul></section>
       <section class="card"><h2 class="ch">${h(leagueName(G.country, me().division))} 順位表</h2>${standingsTable(liveStandings(me().division))}</section>
       ${abroadBlock(d.bg)}
-      <button class="btn primary wide" data-act="end-day">${weekday(D(G.date)) === 5 ? "日曜日へ" : "次の日へ"}</button>`;
+      ${nextBar("end-day", weekday(D(G.date)) === 5 ? "日曜日へ" : "次の日へ")}`;
   } else {
     list = `<section class="card"><h2 class="ch">${h(d.round)} 全試合結果</h2><ul class="scores">${d.results.map(r => r.bye ? `<li><span>${h(r.bye)}</span><b>不戦勝</b><span></span></li>` : `<li class="${r.mine ? "mine" : ""}"><span>${h(r.home)}</span><b>${r.hs} - ${r.as}${r.pk ? "<sup>PK</sup>" : ""}</b><span>${h(r.away)}</span></li>`).join("")}</ul></section>`;
     if (d.final) {
@@ -3853,7 +3918,7 @@ function matchResult(kind) {
       list += `<section class="card trophy"><h2 class="ch">🏆 ${CUP_NAME} 優勝：${h(f.winner)}</h2><p>大会主催者より優勝賞金 ${yen(30000)} が授与されました。${f.mine ? `<br><b>おめでとうございます！ 所持金が ${yen(me().money)} になりました。</b>` : ""}</p>
         <h3 class="sh">${CUP_NAME} 得点王</h3>${scorerList(f.scorers)}${f.award ? `<p class="small">得点王 ${h(f.award.name)}（${h(f.award.team)}）のチームに特別ボーナス ${yen(f.award.bonus)}</p>` : ""}</section>`;
     } else list += cupBracketBlock().replace("対戦表", "次のラウンド");
-    list += `<button class="btn primary wide" data-act="end-day">次の日へ</button>`;
+    list += nextBar("end-day", "次の日へ");
   }
   return `<section class="day-hero match"><span class="dow">${kind === "cup" ? "杯" : DOW[weekday(D(G.date))]}</span><div><b>試合終了</b><small>${h(d.my ? d.my.label : CUP_NAME + " " + d.round)}</small></div></section>${my}${list}`;
 }
