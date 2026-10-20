@@ -559,6 +559,51 @@ body.live-on { overflow: hidden; }
 .opp-tac { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 13px; }
 .opp-tac span { color: var(--muted); font-size: 12px; }
 
+/* ---- 移籍リスト ---- */
+.mlist { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.mrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) 42px 92px; gap: 8px; align-items: center; width: 100%; text-align: left; background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 10px 10px; color: var(--ink); }
+.mrow:last-child { border-bottom: 0; }
+.mrow .pos { align-self: start; margin-top: 2px; }
+.mmain { display: grid; gap: 2px; min-width: 0; }
+.mname { font-size: 15px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mteam { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12.5px; }
+.mteam span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mteam .fa { color: var(--muted); }
+.mmeta { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mstat { display: grid; justify-items: center; gap: 1px; }
+.mstat b { font-family: var(--f-num); font-size: 22px; line-height: 1; }
+.mstat small { font-size: 9.5px; color: var(--muted); }
+.mstat .ppot { margin-top: 2px; transform: scale(.85); }
+.mprice { display: grid; justify-items: end; gap: 3px; }
+.mprice b { font-family: var(--f-num); font-size: 17px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mprice b small { font-family: var(--f-body); font-size: 10.5px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+.mprice em { font-style: normal; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.mprice.ok em { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.mprice.ng b { color: var(--bad); }
+.mprice.ng em { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+
+/* ---- 練習・育成方針 ---- */
+.tcondline { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.tcondline b { font-family: var(--f-num); font-size: 16px; }
+.trainbtns .act { position: relative; }
+.xpbar { display: block; height: 4px; margin-top: 6px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.xpbar em { display: block; height: 100%; background: var(--good); }
+.glist { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.grow { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 8px; align-items: center; text-align: left; width: 100%; padding: 9px 10px; border: 0; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.grow:last-child { border-bottom: 0; }
+.gmain { display: grid; gap: 2px; min-width: 0; }
+.gmain b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gmain small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gbar { display: block; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 2px; }
+.gbar em { display: block; height: 100%; background: linear-gradient(90deg, var(--good), color-mix(in srgb, var(--good) 60%, var(--accent))); }
+.gfocus { display: grid; justify-items: end; font-size: 12.5px; font-weight: 700; color: var(--pitch); }
+.gfocus small { font-weight: 400; font-size: 10.5px; color: var(--muted); }
+.flist { display: grid; gap: 6px; }
+.focusopt { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.focusopt b { font-size: 15px; }
+.focusopt small { font-size: 12px; color: var(--muted); }
+.focusopt.on { border-color: var(--pitch); box-shadow: inset 0 0 0 1px var(--pitch); background: color-mix(in srgb, var(--pitch) 10%, var(--surface)); }
+
 </style>
 </head>
 <body>
@@ -1397,6 +1442,75 @@ function intensiveTraining(p) {
   return logs;
 }
 
+
+// ===== 日々の練習（選手ごとの育成方針 × チーム練習の強度） =====
+// 育成方針：その選手がどの能力を重点的に伸ばすか。練習するたびに「成長ゲージ」がたまり、100で能力が上がる
+const FOCUS = {
+  auto:     { name: "おまかせ", desc: "ポジションに合わせて伸ばす" },
+  shooting: { name: "シュート", desc: "決定力・冷静さ", skills: ["finishing", "composure"] },
+  passing:  { name: "パス・視野", desc: "パス・視野・クロス", skills: ["passing", "vision", "crossing"] },
+  dribble:  { name: "ドリブル・スピード", desc: "ドリブル・加速・スピード", skills: ["dribbling", "acceleration", "speed"] },
+  defense:  { name: "守備", desc: "タックル・マーク・ポジショニング", skills: ["tackling", "marking", "positioning"] },
+  physical: { name: "フィジカル", desc: "強さ・スタミナ・ジャンプ", skills: ["strength", "stamina", "jumping"] },
+  mental:   { name: "メンタル", desc: "統率力・冷静さ・運動量", skills: ["leadership", "composure", "workrate"] },
+  keeper:   { name: "GK", desc: "反応・キャッチ・ポジショニング", skills: ["reflexes", "handling", "positioning"] },
+};
+const AUTO_FOCUS = {
+  GK: ["reflexes", "handling", "positioning"],
+  DF: ["tackling", "marking", "strength", "positioning", "jumping"],
+  MF: ["passing", "vision", "stamina", "dribbling", "workrate"],
+  FW: ["finishing", "acceleration", "dribbling", "composure", "speed"],
+};
+const focusSkills = p => (FOCUS[p.focus] && FOCUS[p.focus].skills) || AUTO_FOCUS[p.pos] || AUTO_FOCUS.MF;
+// 練習の強度：成長の速さ・体力の消耗・ケガのしやすさ
+const INTENSITY = {
+  light:  { name: "軽め",   xp: .55, cond: 4,  fat: 0, inj: .0015, desc: "体力-4・ケガしにくい" },
+  normal: { name: "通常",   xp: 1,   cond: 10, fat: 2, inj: .004, desc: "体力-10" },
+  hard:   { name: "ハード", xp: 1.8, cond: 18, fat: 5, inj: .006, desc: "体力-18・ケガに注意" },
+};
+const TRAIN_BASE_XP = 8;
+const ageXp = a => a <= 21 ? 1.5 : a <= 25 ? 1.2 : a <= 29 ? .85 : a <= 32 ? .45 : .2;
+// 能力の上限（将来性）にまだ余裕のある、重点能力のうち一番低いもの
+function nextFocusSkill(p) {
+  const cap = (p.potential ?? 80);
+  const c = focusSkills(p).filter(s => p[s] < cap);
+  return c.length ? c.reduce((a, b) => (p[b] < p[a] ? b : a)) : null;
+}
+// 1日の練習。戻り値はログ
+function teamTraining(team, kind) {
+  const it = INTENSITY[kind] || INTENSITY.normal;
+  const gym = (team.facilities || {}).training || 1, med = (team.facilities || {}).medical || 1;
+  const grown = [], hurt = [], maxed = [], logs0 = [];
+  for (const p of team.roster) {
+    if (p.retired || p.injury_days > 0) continue;
+    const tired = p.condition < 30;
+    // ケガ：強度が高いほど、疲れているほど起きやすい（医療施設で軽減）
+    let ir = it.inj * (tired ? 2.2 : 1) * (p.skill === "鉄人" ? .3 : 1) * (1.1 - med * .1);
+    if (rnd() < ir) { p.injury_days = randint(3, kind === "hard" ? 24 : 14); hurt.push(p); }
+    p.condition = Math.max(0, p.condition - it.cond);
+    p.fatigue = (p.fatigue || 0) + it.fat;
+    if (p.injury_days > 0) continue;
+    // 若手レジェンドは全盛期の姿に向かって伸びる（育成方針は使わない）
+    if (p.legend) { const r = legendGrowth(p, .1 * it.xp * (tired ? .4 : 1)); if (r) logs0.push(r); continue; }
+    const s = nextFocusSkill(p);
+    if (!s) { maxed.push(p); continue; }
+    const gain = TRAIN_BASE_XP * it.xp * ageXp(p.age) * (1 + (gym - 1) * .12) * (tired ? .4 : 1) * (.8 + rnd() * .4);
+    p.txp = (p.txp || 0) + gain;
+    while (p.txp >= 100) {
+      p.txp -= 100;
+      const s2 = nextFocusSkill(p); if (!s2) { p.txp = 0; break; }
+      const up = p.age <= 23 ? 2 : 1;
+      p[s2] = Math.min(p.potential ?? 99, p[s2] + up);
+      grown.push([p, s2, up]);
+    }
+    processEvolution(p, {});    // 加齢による衰えなどはこれまでどおり
+  }
+  const logs = [L(`チーム練習（${it.name}）：全員の体力 -${it.cond}`, "sub")];
+  for (const [p, s, up] of grown) logs.push(L(`📈 ${p.name} の ${SKJ[s]} が ${up} 上がった！（${FOCUS[p.focus] ? FOCUS[p.focus].name : "おまかせ"}）`, "good"));
+  logs.push(...logs0);
+  for (const p of hurt) logs.push(L(`🚑 練習中に ${p.name} が負傷（全治 ${p.injury_days}日）`, "bad"));
+  return logs;
+}
 
 // ---------- ライバル運営（毎週日曜・全クラブ） ----------
 function simulateRivalManagement() {
@@ -2348,7 +2462,7 @@ function makeNewGame(world, myIdx) {
 
 // ---------------- セーブの圧縮・移行 ----------------
 const PKEYS = ["name", "pos", "age", "potential", "value", "condition", "fatigue", "retired", "injury_days", "league_goals", "cup_goals",
-  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend"];
+  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend", "focus", "txp"];
 const encP = p => PKEYS.map(k => p[k] ?? null);
 const decP = a => { const p = {}; PKEYS.forEach((k, i) => (p[k] = a[i])); return p; };
 function encodeSave(g) {
@@ -3331,7 +3445,7 @@ function statsHTML(live = false) {
   return `<div class="lv-stats">
     <div class="lv-scorers"><div>${gl("home")}</div><div>${gl("away")}</div></div>
     ${(() => { const h = S.possT.home, w = S.possT.away, t = h + w; if (!t) return ""; const ph = Math.round(h / t * 100); return `<div class="lv-statrow"><span>${ph}%</span><div class="lv-lab">ボール支配率<div class="lv-statbar"><i style="width:${ph}%;background:${S.K.home.body}"></i><i style="width:${100 - ph}%;background:${S.K.away.body}"></i></div></div><span>${100 - ph}%</span></div>`; })()}
-    ${row("攻撃回数", st.home.att, st.away.att)}${row("シュート", st.home.shot, st.away.shot)}${row("ゴール", st.home.goal, st.away.goal)}
+    ${row("シュート", st.home.shot, st.away.shot)}${row("ゴール", st.home.goal, st.away.goal)}
     ${live ? "" : `<details><summary class="muted small">実況ログ</summary><ol class="feed" style="padding:8px 0">${S.feed.map(f => `<li class="${esc(f.cls || "")}"><span class="fm">${f.min ? f.min + "'" : ""}</span><span class="ft">${esc(f.text)}</span></li>`).join("")}</ol></details>`}
   </div>`;
 }
@@ -3625,6 +3739,7 @@ function skipOffseason() {
 
 // ---------------- 平日の行動 ----------------
 function actTrain(kind) {
+  if (INTENSITY[kind]) { const logs = [L(`▶ ${shortDate(G.date)} 練習（${INTENSITY[kind].name}）`, "sub"), ...teamTraining(me(), kind)]; endDay(logs); return; }
   const m = me(); const logs = [L(`▶ ${shortDate(G.date)} ${kind === "1" ? "攻撃" : "守備"}特訓`, "sub")];
   const cands = m.roster.filter(p => p.age <= 25 && !p.retired);
   if (cands.length) {
@@ -3836,13 +3951,17 @@ function renderHome() {
     return `${wk}${offerBlock()}
       <section class="day-hero"><span class="dow">${DOW[weekday(D(G.date))]}</span><div><b>練習日</b><small>練習メニューを選ぶと1日が進みます</small></div></section>
       <section class="card"><h2 class="ch">今日の練習<small>選ぶと1日が進みます</small></h2>
+        ${(() => { const a = active(m).filter(p => !p.injury_days); const c = a.length ? Math.round(sum(a.map(p => p.condition)) / a.length) : 0; const tired = a.filter(p => p.condition < 30).length;
+          return `<p class="tcondline">チームの平均体力 <b class="${c < 50 ? "bad" : c < 70 ? "" : "good"}">${c}%</b>${tired ? ` · <span class="bad">疲れている選手 ${tired}人（練習の効果が落ち、ケガしやすい）</span>` : ""}</p>`; })()}
+        <div class="grid3 trainbtns">${Object.entries(INTENSITY).map(([k, v]) => `<button class="act ${k === "hard" ? "hot" : ""}" data-act="train" data-arg="${k}"><b>${v.name}</b><small>${v.desc}</small><i class="xpbar"><em style="width:${Math.min(100, v.xp / 1.7 * 100)}%"></em></i></button>`).join("")}</div>
         <div class="grid2">
-          <button class="act" data-act="train" data-arg="1"><b>攻撃特訓</b><small>若手1人の決定力UP／全員 体力-12</small></button>
-          <button class="act" data-act="train" data-arg="2"><b>守備特訓</b><small>若手1人のタックルUP／全員 体力-12</small></button>
-          <button class="act hot" data-act="sheet" data-arg="intensive"><b>個別特訓</b><small>1人を大幅強化／体力-45</small></button>
+          <button class="act" data-act="sheet" data-arg="growth"><b>育成方針</b><small>選手ごとに伸ばす能力</small></button>
           <button class="act calm" data-act="rest"><b>休養</b><small>全員 体力+15</small></button>
         </div>
-        <button class="btn ghost wide" data-act="rest-until">試合日まで休養を続ける</button>
+        <div class="grid2">
+          <button class="act sm" data-act="sheet" data-arg="intensive"><b>個別特訓</b><small>1人を大幅強化／体力-45</small></button>
+          <button class="act sm" data-act="rest-until"><b>試合日まで休養</b><small>まとめて進める</small></button>
+        </div>
       </section>
       ${feed}
       ${abroadBlock(d.bg)}
@@ -4014,6 +4133,31 @@ function matchResult(kind) {
   return `<section class="day-hero match"><span class="dow">${kind === "cup" ? "杯" : DOW[weekday(D(G.date))]}</span><div><b>試合終了</b><small>${h(d.my ? d.my.label : CUP_NAME + " " + d.round)}</small></div></section>${my}${list}`;
 }
 
+// 育成方針の一覧の1行：方針・成長ゲージ・次に伸びる能力
+function growthRow(p) {
+  const m = me(), f = FOCUS[p.focus] || FOCUS.auto;
+  const nx = p.legend ? null : nextFocusSkill(p), xp = Math.round(p.txp || 0);
+  const note = p.legend ? "レジェンド（全盛期の姿へ成長）" : p.injury_days ? `負傷中（${p.injury_days}日）` : nx ? `次は ${SKJ[nx]}（${p[nx]}）` : "重点能力は上限まで伸びた";
+  return `<button class="grow" data-act="focus-pick" data-arg="${m.roster.indexOf(p)}">
+    <span class="pos pos-${p.pos}">${p.pos}</span>
+    <span class="gmain"><b>${h(p.name)}</b><small>${p.age}歳 · ${note}</small><i class="gbar"><em style="width:${p.legend || !nx ? 0 : Math.min(100, xp)}%"></em></i></span>
+    <span class="gfocus">${p.legend ? "—" : f.name}<small>変更 ›</small></span></button>`;
+}
+// 移籍リストの1行：名前は1行で、所属・年齢・国籍は2行目、価格は右にまとめる
+function marketRow(it, i, money) {
+  const p = it.player, ovr = getOvr(p), ok = money >= p.value;
+  const team = it.fromIdx != null ? `${crest(G.teams[it.fromIdx].name, 14)}<span>${h(G.teams[it.fromIdx].name)}</span>` : `<span class="fa">無所属</span>`;
+  return `<button class="mrow" data-act="mk-view" data-arg="${i}">
+    <span class="pos pos-${p.pos}">${p.pos}</span>
+    <span class="mmain">
+      <b class="mname">${p.legend ? "🌟 " : ""}${h(p.name)}</b>
+      <span class="mteam">${team}</span>
+      <span class="mmeta">${p.age}歳 · ${p.height ? `${p.height}cm · ` : ""}${h(natName(p))}</span>
+    </span>
+    <span class="mstat"><b class="${ovrClass(ovr)}">${ovr}</b><small>総合</small><span class="ppot ${potClass(p.potential)}">${potRank(p.potential)}</span></span>
+    <span class="mprice ${ok ? "ok" : "ng"}"><b>${Number(p.value).toLocaleString("ja-JP")}<small>円</small></b><em>${ok ? "予算内" : `あと${(p.value - money).toLocaleString("ja-JP")}`}</em></span>
+  </button>`;
+}
 // 移籍リストの価格欄：金額（円）と、今の所持金で買えるか
 function priceCell(v, money) {
   const ok = money >= v;
@@ -4174,6 +4318,7 @@ const SHEETS = {
       const cnt = active(me()).length;
       if (s.confirmRelease) actions = `<div class="confirm"><p>${h(p.name)} を解雇しますか？</p><div class="row2"><button class="btn ghost" data-act="rel-cancel">やめる</button><button class="btn danger" data-act="rel-go">解雇する</button></div></div>`;
       else actions = cnt <= 15 ? `<p class="muted small">選手数が少なすぎるため、これ以上解雇できません（15人以下）。</p>` : `<button class="btn ghost wide dangertxt" data-act="rel-ask">この選手を解雇する</button>`;
+      actions = `<h3 class="sh">育成方針</h3><div class="glist">${growthRow(p)}</div>` + actions;
     } else if (s.mode === "market") {
       const m = me();
       if (active(m).length >= MAX_ROSTER && m.roster.length >= MAX_ROSTER) actions = `<p class="bad">チームの登録人数が上限（${MAX_ROSTER}人）です。先に名簿から選手を解雇してください。</p>`;
@@ -4255,6 +4400,18 @@ const SHEETS = {
     }
     return { title: "個別特訓（特別強化指定）", body: `<p class="muted small">体力 -45 | 能力が大幅UP | 稀にスキル習得。実行すると1日が進みます。</p>${rowHead()}<div class="plist">${list.map(p => playerRow(p, { act: "int-pick", idx: m.roster.indexOf(p) })).join("")}</div>` };
   },
+  growth(s) {
+    const m = me(), list = sortRoster(active(m));
+    return { title: "育成方針", body: `<p class="muted small">練習するたびに成長ゲージがたまり、満タンで重点能力のどれか（低いもの）が上がります。若いほど・練習が強いほど・ジムのレベルが高いほど速くたまります。将来性の上限まで伸びると止まります。</p>
+      <div class="glist">${list.map(p => growthRow(p)).join("")}</div>` };
+  },
+  focus(s) {
+    const p = s.p;
+    const opts = Object.entries(FOCUS).filter(([k]) => k !== "keeper" || p.pos === "GK").filter(([k]) => p.pos !== "GK" || ["auto", "keeper", "physical", "mental", "passing"].includes(k));
+    return { title: `${h(p.name)} の育成方針`, body: `<div class="flist">${opts.map(([k, v]) => {
+      const sk = k === "auto" ? (AUTO_FOCUS[p.pos] || []) : v.skills;
+      return `<button class="focusopt ${(p.focus || "auto") === k ? "on" : ""}" data-act="set-focus" data-arg="${k}"><b>${v.name}</b><small>${sk.map(x => `${SKJ[x]} ${p[x]}`).join(" · ")}</small></button>`; }).join("")}</div>` };
+  },
   scout(s) {
     const m = me();
     if (m.scout_status === "SEARCHING") return { title: "ユーススカウト", body: `<p>現在スカウトが各地を飛び回っています。報告まであと <b>${m.scout_timer}</b> 日です。${m.scout_target_pos ? `（ターゲット: ${m.scout_target_pos}）` : ""}</p>` };
@@ -4286,7 +4443,7 @@ const SHEETS = {
     if (!T.market || T.marketDate !== G.date) buildMarket();
     const msg = s.msg ? logList([s.msg]) : "";
     return { title: "移籍市場：本日のリスト", body: `<p>現在の所持金: <b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b> · 登録 ${m.roster.length}/${MAX_ROSTER}</p>${msg}
-      ${rowHead("価格", "mk")}<div class="plist">${T.market.map((it, i) => playerRow(it.player, { act: "mk-view", idx: i, team: it.fromIdx != null ? `${crest(G.teams[it.fromIdx].name, 14)}${h(G.teams[it.fromIdx].name)}` : "無所属（FA）", cls: "mk", right: priceCell(it.player.value, m.money) })).join("")}</div>
+      <div class="mlist">${T.market.map((it, i) => marketRow(it, i, m.money)).join("")}</div>
       ${!T.market.length ? `<p class="muted">リストに残っている選手はいません。</p>` : ""}` };
   },
 };
@@ -4361,6 +4518,8 @@ const ACTIONS = {
   "st-pick"(i) { const s = topSheet(); s.picked.push(me().roster[Number(i)]); renderSheet(); },
   "st-auto"() { T.starters = null; closeSheet(); toast("スタメンをおまかせに戻しました"); },
   "st-done"() { const s = topSheet(); if (s.picked.length === 11) { T.starters = s.picked.slice(); closeSheet(); toast("スタメンを決定しました"); } },
+  "focus-pick"(i) { const p = me().roster[Number(i)]; if (p.legend) { toast("レジェンドは育成方針を変えられません"); return; } openSheet({ kind: "focus", p }); },
+  "set-focus"(k) { const s = topSheet(); s.p.focus = k === "auto" ? null : k; persist(); closeSheet(); toast(`${s.p.name} の育成方針：${FOCUS[k].name}`); },
   "int-pick"(i) { topSheet().p = me().roster[Number(i)]; renderSheet(); },
   "int-back"() { topSheet().p = null; renderSheet(); },
   "int-go"() { const s = topSheet(); s.result = intensiveTraining(s.p); persist(); renderSheet(); },
