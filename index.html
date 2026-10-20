@@ -556,6 +556,8 @@ body.live-on { overflow: hidden; }
 .twhere { justify-self: end; font-size: 11.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
 .twhere.xi { background: color-mix(in srgb, var(--pitch) 16%, var(--surface)); color: var(--pitch); }
 .twhere.inj { color: var(--bad); }
+.opp-tac { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 13px; }
+.opp-tac span { color: var(--muted); font-size: 12px; }
 
 </style>
 </head>
@@ -1188,6 +1190,19 @@ const countryInfo = id => COUNTRIES.find(c => c.id === id);
 const leagueName = (cid, d) => countryInfo(cid).leagues[d - 1];
 const teamLeagueName = t => leagueName(t.country, t.division);
 
+// 他クラブの戦術をランダムに決める（フォーメーション・攻撃スタイル・守備ライン）
+// 格上（tier 1〜2）ほどポゼッション・高いラインが多く、格下ほどカウンター・低いラインが多い
+const AI_FORMATIONS = [["4-3-3", 22], ["4-2-3-1", 22], ["4-4-2", 18], ["4-1-4-1", 7], ["3-5-2", 7], ["3-4-3", 6], ["5-3-2", 5], ["4-3-2-1", 4], ["3-4-1-2", 3], ["5-4-1", 4], ["4-2-4", 1], ["3-3-4", 1]];
+function weighted(list) { let r = rnd() * list.reduce((a, [, w]) => a + w, 0); for (const [k, w] of list) { r -= w; if (r <= 0) return k; } return list[0][0]; }
+function randomTactics(team) {
+  const big = (team.tier || 3) <= 2;
+  team.formation = weighted(AI_FORMATIONS);
+  team.tactics = {
+    style: weighted([["balance", 35], ["possession", big ? 32 : 15], ["wing", 20], ["counter", big ? 13 : 30]]),
+    line: weighted([["mid", 50], ["high", big ? 32 : 15], ["low", big ? 18 : 35]]),
+  };
+  return team;
+}
 function createTeam(name, tier = 0, country = null) {
   const roster = [];
   let src = DATA.RIVAL_PLAYERS.filter(r => r.team_name === name);
@@ -2256,6 +2271,8 @@ function seasonRollover(y) {
   G.season_year = y;
   const logs = [];
   const mine = me();
+  // 新シーズン：他クラブの約4分の1が戦術を変える（監督交代など）
+  for (const t of G.teams) if (t !== mine && (!t.tactics || rnd() < .25)) randomTactics(t);
   for (const [i, d] of G.pending_moves || []) G.teams[i].division = d;
   G.pending_moves = null;
   for (const team of G.teams) {
@@ -2320,6 +2337,8 @@ function makeNewGame(world, myIdx) {
   G = { v: 3, teams: world, myIdx, country: world[myIdx].country, date: "2025-08-01", season_year: 2025,
     cup_teams: [], next_cup: null, lg: null, news: [], season_processed: false, day: null };
   me().money = 10000;
+  // 他クラブはランダムな戦術、自チームは 4-4-2・バランス・標準から（戦術タブで変えられる）
+  world.forEach((t, i) => { if (i === myIdx) { t.formation = "4-4-2"; t.tactics = { style: "balance", line: "mid" }; } else randomTactics(t); });
   G.lg = buildLeagueState(2025);
   G.cup_teams = cupQualifiers(false);
   G.cup_result = G.cup_teams.includes(myIdx) ? "出場" : "出場なし";
@@ -2402,6 +2421,8 @@ function migrateSave(raw) {
     G = g0;
   }
   s.news = s.news || [];
+  // 戦術のない他クラブ（前のバージョンのセーブ）にはランダムに戦術を決める
+  s.teams.forEach((t, i) => { if (i !== s.myIdx && !t.tactics) randomTactics(t); });
   return s;
 }
 const exportSave = () => JSON.stringify(encodeSave(G));
@@ -3852,6 +3873,9 @@ function renderHome() {
   return feed;
 }
 
+// 戦術の表示（例：4-3-3 · ポゼッション · ライン高い）
+const tacText = t => { const c = tacOf(t); return `${t.formation || "4-4-2"} · ${(TAC_STYLE[c.style] || TAC_STYLE.balance).name} · ライン${(TAC_LINE[c.line] || TAC_LINE.mid).name.replace(/（.*）/, "")}`; };
+
 // ---------------- 日程の見える化 ----------------
 // その日の自分の予定：league（リーグ戦）/ cup（カップ戦）/ rest（日曜・休養日）/ train（練習日）/ free（試合のない土曜）/ off（オフ）
 function dayKind(ds) {
@@ -3943,6 +3967,7 @@ function matchPrep(kind) {
       <div class="vs-side mine">${crest(m.name, 40)}<small>${opp.home ? "HOME" : "AWAY"}</small><b>${h(m.name)}</b><span>先発平均 ${myAvg}</span></div>
       <div class="vs-x">VS</div>
       <div class="vs-side">${crest(t.name, 40)}<small>${opp.home ? "AWAY" : "HOME"}</small><b>${h(t.name)}</b><span>${h(teamLeagueName(t))} ${rk}位 · 平均 ${avg}</span></div></div>
+      <p class="opp-tac"><span>相手の戦術</span><b>${tacText(t)}</b></p>
       ${!opp.home ? `<p class="muted small">アウェイでは攻撃の成功率が下がります。</p>` : ""}`;
   })() : `<p>あなたのチームはすでに敗退しています。</p>`;
   const bracket = kind === "cup" ? cupBracketBlock() : "";
@@ -4200,7 +4225,7 @@ const SHEETS = {
     const avg = Math.round(sum(getStarters(t).map(getOvr)) / 11);
     const crestBox = `<div class="crestbox">${crest(t.name, 64)}<div><b>エンブレム</b><small>${CREST_IMG[t.name] ? "設定した画像を表示中" : "クラブカラーの図柄を表示中"}</small>
       <div class="chips"><button class="chip btnchip" data-act="crest-pick" data-arg="${h(t.name)}">画像を設定</button>${CREST_IMG[t.name] ? `<button class="chip btnchip" data-act="crest-clear" data-arg="${h(t.name)}">元に戻す</button>` : ""}</div></div></div>`;
-    return { title: h(t.name), body: `${crestBox}<dl class="kv"><dt>リーグ</dt><dd>${h(lgName)}</dd><dt>成績</dt><dd>${t.won}勝${t.drawn}分${t.lost}敗 · 勝点${t.points}</dd><dt>先発平均</dt><dd>${avg}</dd><dt>資金</dt><dd>${yen(t.money)}</dd></dl>
+    return { title: h(t.name), body: `${crestBox}<dl class="kv"><dt>リーグ</dt><dd>${h(lgName)}</dd><dt>成績</dt><dd>${t.won}勝${t.drawn}分${t.lost}敗 · 勝点${t.points}</dd><dt>先発平均</dt><dd>${avg}</dd><dt>戦術</dt><dd>${tacText(t)}</dd><dt>資金</dt><dd>${yen(t.money)}</dd></dl>
       ${rowHead()}<div class="plist">${r.map(p => playerRow(p, { act: mine ? "pdetail-mine" : "pdetail-team", idx: t.roster.indexOf(p) })).join("")}</div>` };
   },
   crests(s) {
