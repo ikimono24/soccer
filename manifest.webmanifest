@@ -1,6 +1,6 @@
 {
-  "name": "サッカー監督シミュレーター",
-  "short_name": "サッカー監督",
+  "name": "Football Simulator",
+  "short_name": "Football Sim",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",

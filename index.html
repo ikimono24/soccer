@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>サッカー監督シミュレーター</title>
+<title>Football Simulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="サッカー監督">
+<meta name="apple-mobile-web-app-title" content="Football Sim">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon.png">
@@ -4184,7 +4184,7 @@ function renderTitle() {
   const cont = loc ? `<button class="btn primary wide" data-act="continue">続きから<small>${h(loc.G.teams[loc.G.myIdx].name)} · ${fmtDate(loc.G.date)}</small></button>` : "";
   const cloudBtn = newerCloud ? `<button class="btn wide" data-act="cloud-load">クラウドから続ける<small>${h(cm.team)} · ${fmtDate(cm.date)}</small></button>` : "";
   return `<div class="title">
-    <div class="title-mark"><div class="pitch-lines"></div><h1>サッカー<br>監督シミュレーター</h1><p>5大リーグ 1部・2部 全${COUNTRIES.reduce((n, c) => n + c.d1.length + c.d2.length, 0)}クラブ／${CUP_NAME}</p></div>
+    <div class="title-mark"><div class="pitch-lines"></div><h1>Football<br>Simulator</h1><p>5大リーグ 1部・2部 全${COUNTRIES.reduce((n, c) => n + c.d1.length + c.d2.length, 0)}クラブ／${CUP_NAME}</p></div>
     <div class="title-actions">
       ${cont}${cloudBtn}
       <button class="btn ${loc ? "" : "primary"} wide" data-act="new-career">新しく始める<small>実在クラブを選んで監督に就任</small></button>
