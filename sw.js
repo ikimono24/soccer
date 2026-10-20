@@ -1,10 +1,11 @@
-// オフライン用キャッシュ（バージョン 6c9a6a17）
-const CACHE = 'soccer-m-6c9a6a17';
-const CORE = ['./', './index.html', './manifest.webmanifest',
+// オフライン用キャッシュ（バージョン 0ceefc3d）
+const CACHE = 'soccer-m-0ceefc3d';
+const CORE = ['./', './index.html',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon.png'];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  // ブラウザのキャッシュを通さずに取り直す（古いファイルを新しいキャッシュに入れないため）
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
@@ -18,6 +19,11 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); return r; })
       .catch(() => caches.match('./index.html')));
+    return;
+  }
+  // マニフェスト（アプリ名・アイコンの設定）: 常にネット優先
+  if (url.pathname.endsWith('.webmanifest')) {
+    e.respondWith(fetch(req, { cache: 'no-cache' }).catch(() => caches.match(req)));
     return;
   }
   // それ以外（アイコン・Googleフォント）: キャッシュ優先、なければ取得して保存
