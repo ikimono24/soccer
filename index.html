@@ -898,12 +898,101 @@ const LEGENDS = [
   ["chabumkun", "車範根", "FW", "韓国", 179, 27, 87, "ST", { strength: 6, stamina: 6 }, "鉄人"],
   ["ibrahimovic", "ズラタン・イブラヒモヴィッチ", "FW", "スウェーデン", 195, 28, 91, "TS", { dribbling: 10, composure: 4 }, "エースストライカー"],
   ["klose", "ミロスラフ・クローゼ", "FW", "ドイツ", 182, 28, 88, "TS", { positioning: 6, jumping: 4 }, "エースストライカー"],
+  // ---- 追加分 ----
+  ["banks", "ゴードン・バンクス", "GK", "イングランド", 185, 29, 90, "GK", { reflexes: 4 }, "守護神"],
+  ["cech", "ペトル・チェフ", "GK", "チェコ", 196, 27, 90, "GK", { handling: 4, positioning: 4 }, "守護神"],
+  ["vandersar", "エドウィン・ファン・デル・サール", "GK", "オランダ", 197, 30, 89, "GK", { passing: 14, composure: 6 }, "鉄人"],
+  ["maier", "ゼップ・マイヤー", "GK", "ドイツ", 183, 29, 89, "GK", { reflexes: 4 }, "守護神"],
+  ["chilavert", "ホセ・ルイス・チラベルト", "GK", "パラグアイ", 189, 30, 87, "GK", { passing: 20, finishing: 40, leadership: 10 }, "バンディエラ"],
+  ["barthez", "ファビアン・バルテズ", "GK", "フランス", 183, 29, 87, "GK", { reflexes: 4, passing: 8 }, "心臓"],
+  ["kawaguchi", "川口能活", "GK", "日本", 179, 28, 83, "GK", { reflexes: 6, leadership: 6 }, "守護神"],
+  ["narazaki", "楢崎正剛", "GK", "日本", 187, 29, 83, "GK", { positioning: 4 }, "鉄人"],
+  ["moore", "ボビー・ムーア", "DF", "イングランド", 188, 27, 91, "CB", { passing: 8, leadership: 10, speed: -6 }, "ディフェンスリーダー"],
+  ["facchetti", "ジャチント・ファッケッティ", "DF", "イタリア", 191, 27, 89, "FB", { finishing: 10, jumping: 8 }, "鉄人"],
+  ["scirea", "ガエターノ・シレア", "DF", "イタリア", 178, 28, 90, "CB", { passing: 8, composure: 6 }, "ディフェンスリーダー"],
+  ["calberto", "カルロス・アルベルト", "DF", "ブラジル", 178, 26, 89, "FB", { leadership: 10, finishing: 8 }, "バンディエラ"],
+  ["koeman", "ロナルド・クーマン", "DF", "オランダ", 182, 28, 89, "CB", { passing: 12, finishing: 14, speed: -10 }, "ナンバー10"],
+  ["krol", "ルート・クロル", "DF", "オランダ", 184, 27, 88, "CB", { passing: 8, speed: 6 }, "鉄壁"],
+  ["zanetti", "ハビエル・サネッティ", "DF", "アルゼンチン", 178, 28, 89, "FB", { stamina: 6, leadership: 10 }, "鉄人"],
+  ["acole", "アシュリー・コール", "DF", "イングランド", 176, 27, 88, "FB", { tackling: 6, speed: 4 }, "スピードスター"],
+  ["sramos", "セルヒオ・ラモス", "DF", "スペイン", 184, 28, 90, "CB", { jumping: 8, finishing: 10, leadership: 10 }, "心臓"],
+  ["pique", "ジェラール・ピケ", "DF", "スペイン", 194, 27, 88, "CB", { passing: 10, composure: 6 }, "鉄壁"],
+  ["lucio", "ルシオ", "DF", "ブラジル", 188, 27, 88, "CB", { dribbling: 10, strength: 4 }, "鉄壁"],
+  ["blanc", "ローラン・ブラン", "DF", "フランス", 192, 29, 88, "CB", { passing: 8, finishing: 6 }, "ディフェンスリーダー"],
+  ["breitner", "パウル・ブライトナー", "DF", "ドイツ", 176, 26, 88, "FB", { passing: 10, finishing: 8 }, "心臓"],
+  ["brehme", "アンドレアス・ブレーメ", "DF", "ドイツ", 176, 29, 87, "FB", { crossing: 6, finishing: 6 }, "鉄人"],
+  ["bergomi", "ジュゼッペ・ベルゴミ", "DF", "イタリア", 182, 27, 87, "CB", { marking: 4 }, "鉄壁"],
+  ["ihara", "井原正巳", "DF", "日本", 182, 28, 83, "CB", { leadership: 8, positioning: 4 }, "ディフェンスリーダー"],
+  ["okudera", "奥寺康彦", "DF", "日本", 177, 28, 83, "FB", { stamina: 6, workrate: 8 }, "鉄人"],
+  ["hongmyungbo", "洪明甫", "DF", "韓国", 181, 29, 85, "CB", { passing: 8, leadership: 10 }, "ディフェンスリーダー"],
+  ["charlton", "ボビー・チャールトン", "MF", "イングランド", 173, 28, 91, "CM", { finishing: 10, passing: 4 }, "バンディエラ"],
+  ["socrates", "ソクラテス", "MF", "ブラジル", 193, 28, 89, "AM", { vision: 4, jumping: 10, speed: -8 }, "ナンバー10"],
+  ["falcao", "ファルカン", "MF", "ブラジル", 183, 28, 88, "CM", { passing: 6, vision: 6 }, "ナンバー10"],
+  ["rivera", "ジャンニ・リベラ", "MF", "イタリア", 175, 26, 89, "AM", { passing: 6 }, "ナンバー10"],
+  ["netzer", "ギュンター・ネッツァー", "MF", "ドイツ", 178, 27, 88, "CM", { passing: 8, vision: 8 }, "ナンバー10"],
+  ["neeskens", "ヨハン・ニースケンス", "MF", "オランダ", 178, 26, 88, "CM", { tackling: 10, workrate: 8 }, "心臓"],
+  ["gullit", "ルート・フリット", "MF", "オランダ", 191, 27, 91, "CM", { strength: 10, jumping: 10, finishing: 8 }, "【極】皇帝"],
+  ["rijkaard", "フランク・ライカールト", "MF", "オランダ", 190, 28, 90, "DM", { passing: 6, composure: 6 }, "鉄壁"],
+  ["makelele", "クロード・マケレレ", "MF", "フランス", 170, 29, 88, "DM", { tackling: 6, positioning: 6 }, "心臓"],
+  ["davids", "エドガー・ダーヴィッツ", "MF", "オランダ", 169, 27, 88, "DM", { workrate: 6, dribbling: 6 }, "心臓"],
+  ["laudrup", "ミカエル・ラウドルップ", "MF", "デンマーク", 183, 27, 90, "AM", { vision: 6, passing: 4 }, "【極】ファンタジスタ"],
+  ["nedved", "パヴェル・ネドヴェド", "MF", "チェコ", 177, 30, 90, "W", { stamina: 10, finishing: 6, workrate: 10 }, "心臓"],
+  ["rivaldo", "リバウド", "MF", "ブラジル", 186, 27, 91, "AM", { finishing: 8, jumping: 8 }, "エースストライカー"],
+  ["riquelme", "フアン・ロマン・リケルメ", "MF", "アルゼンチン", 182, 28, 89, "AM", { passing: 6, vision: 6, speed: -12 }, "【極】ファンタジスタ"],
+  ["ruicosta", "ルイ・コスタ", "MF", "ポルトガル", 180, 27, 88, "AM", { passing: 6 }, "ナンバー10"],
+  ["xalonso", "シャビ・アロンソ", "MF", "スペイン", 183, 28, 88, "CM", { passing: 8, tackling: 6 }, "ナンバー10"],
+  ["ballack", "ミヒャエル・バラック", "MF", "ドイツ", 189, 27, 89, "CM", { jumping: 10, finishing: 8 }, "バンディエラ"],
+  ["mascherano", "ハビエル・マスチェラーノ", "MF", "アルゼンチン", 174, 27, 87, "DM", { tackling: 6, workrate: 6 }, "心臓"],
+  ["dsilva", "ダビド・シルバ", "MF", "スペイン", 170, 28, 89, "AM", { passing: 4, composure: 4 }, "ナンバー10"],
+  ["ozil", "メスト・エジル", "MF", "ドイツ", 180, 26, 89, "AM", { vision: 6, passing: 6 }, "ナンバー10"],
+  ["yayatoure", "ヤヤ・トゥーレ", "MF", "コートジボワール", 191, 29, 89, "CM", { strength: 12, finishing: 8 }, "鉄人"],
+  ["hagi", "ゲオルゲ・ハジ", "MF", "ルーマニア", 174, 27, 90, "AM", { finishing: 6, passing: 4 }, "【極】ファンタジスタ"],
+  ["nanami", "名波浩", "MF", "日本", 177, 27, 83, "CM", { passing: 8, vision: 8 }, "ナンバー10"],
+  ["ono", "小野伸二", "MF", "日本", 175, 23, 85, "AM", { passing: 6, composure: 6 }, "【極】ファンタジスタ"],
+  ["endo", "遠藤保仁", "MF", "日本", 178, 29, 84, "CM", { passing: 8, composure: 10 }, "ナンバー10"],
+  ["honda", "本田圭佑", "MF", "日本", 182, 26, 85, "AM", { strength: 8, finishing: 8 }, "心臓"],
+  ["hasebe", "長谷部誠", "MF", "日本", 180, 29, 83, "DM", { leadership: 10, positioning: 6 }, "バンディエラ"],
+  ["puskas", "フェレンツ・プスカシュ", "FW", "ハンガリー", 172, 28, 93, "ST", { finishing: 4, vision: 8 }, "【極】怪物"],
+  ["garrincha", "ガリンシャ", "FW", "ブラジル", 169, 27, 91, "W", { dribbling: 6, acceleration: 4 }, "【極】ファンタジスタ"],
+  ["jairzinho", "ジャイルジーニョ", "FW", "ブラジル", 173, 26, 88, "W", { finishing: 8, strength: 6 }, "スピードスター"],
+  ["rummenigge", "カール=ハインツ・ルンメニゲ", "FW", "ドイツ", 182, 26, 90, "ST", { dribbling: 4 }, "エースストライカー"],
+  ["klinsmann", "ユルゲン・クリンスマン", "FW", "ドイツ", 181, 28, 89, "ST", { jumping: 8 }, "エースストライカー"],
+  ["prossi", "パオロ・ロッシ", "FW", "イタリア", 178, 26, 89, "ST", { positioning: 6, composure: 4 }, "エースストライカー"],
+  ["lineker", "ゲーリー・リネカー", "FW", "イングランド", 177, 26, 88, "ST", { positioning: 6 }, "エースストライカー"],
+  ["dalglish", "ケニー・ダルグリッシュ", "FW", "スコットランド", 173, 27, 89, "ST", { passing: 10, vision: 8 }, "バンディエラ"],
+  ["rush", "イアン・ラッシュ", "FW", "ウェールズ", 180, 26, 88, "ST", { speed: 4 }, "エースストライカー"],
+  ["trezeguet", "ダヴィド・トレゼゲ", "FW", "フランス", 188, 27, 88, "TS", { finishing: 4 }, "エースストライカー"],
+  ["owen", "マイケル・オーウェン", "FW", "イングランド", 173, 22, 89, "ST", { speed: 6, acceleration: 6 }, "スピードスター"],
+  ["vannistelrooy", "ルート・ファン・ニステルローイ", "FW", "オランダ", 188, 27, 89, "TS", { finishing: 4, positioning: 6 }, "エースストライカー"],
+  ["torres", "フェルナンド・トーレス", "FW", "スペイン", 186, 24, 89, "ST", { speed: 6 }, "スピードスター"],
+  ["villa", "ダビド・ビジャ", "FW", "スペイン", 175, 28, 89, "ST", { finishing: 4, composure: 4 }, "エースストライカー"],
+  ["robben", "アリエン・ロッベン", "FW", "オランダ", 180, 28, 90, "W", { finishing: 8, dribbling: 6 }, "スピードスター"],
+  ["ribery", "フランク・リベリー", "FW", "フランス", 170, 27, 89, "W", { dribbling: 6, passing: 4 }, "スピードスター"],
+  ["vieri", "クリスティアン・ヴィエリ", "FW", "イタリア", 185, 27, 89, "TS", { strength: 4 }, "エースストライカー"],
+  ["delpiero", "アレッサンドロ・デル・ピエロ", "FW", "イタリア", 174, 27, 91, "AM", { finishing: 8, composure: 4 }, "バンディエラ"],
+  ["inzaghi", "フィリッポ・インザーギ", "FW", "イタリア", 181, 28, 87, "ST", { positioning: 8, dribbling: -10 }, "エースストライカー"],
+  ["zola", "ジャンフランコ・ゾラ", "FW", "イタリア", 168, 28, 88, "AM", { finishing: 6 }, "ナンバー10"],
+  ["crespo", "エルナン・クレスポ", "FW", "アルゼンチン", 184, 27, 88, "TS", { finishing: 4 }, "エースストライカー"],
+  ["kempes", "マリオ・ケンペス", "FW", "アルゼンチン", 184, 24, 89, "ST", { strength: 6 }, "エースストライカー"],
+  ["aguero", "セルヒオ・アグエロ", "FW", "アルゼンチン", 173, 27, 90, "ST", { finishing: 4, acceleration: 4 }, "エースストライカー"],
+  ["stoichkov", "フリスト・ストイチコフ", "FW", "ブルガリア", 178, 28, 90, "ST", { finishing: 4, dribbling: 4 }, "エースストライカー"],
+  ["suker", "ダヴォル・シューケル", "FW", "クロアチア", 183, 30, 88, "ST", { finishing: 4 }, "エースストライカー"],
+  ["boban", "ズヴォニミール・ボバン", "MF", "クロアチア", 186, 27, 88, "AM", { passing: 6 }, "ナンバー10"],
+  ["litmanen", "ヤリ・リトマネン", "MF", "フィンランド", 185, 25, 88, "AM", { finishing: 6, vision: 6 }, "ナンバー10"],
+  ["milla", "ロジェ・ミラ", "FW", "カメルーン", 176, 28, 87, "ST", { finishing: 4 }, "スーパーサブ"],
+  ["abedipele", "アベディ・ペレ", "MF", "ガーナ", 176, 27, 87, "AM", { dribbling: 6 }, "スピードスター"],
+  ["nakayama", "中山雅史", "FW", "日本", 178, 30, 82, "ST", { workrate: 12, positioning: 6 }, "心臓"],
+  ["takahara", "高原直泰", "FW", "日本", 181, 25, 83, "TS", { finishing: 4 }, "エースストライカー"],
+  ["okazaki", "岡崎慎司", "FW", "日本", 174, 28, 82, "ST", { workrate: 14, jumping: 6 }, "心臓"],
+  ["ahnjunghwan", "安貞桓", "FW", "韓国", 177, 26, 84, "ST", { dribbling: 6 }, "スーパーサブ"],
+  ["hwangsunhong", "黄善洪", "FW", "韓国", 183, 28, 84, "TS", { finishing: 4 }, "エースストライカー"],
 ];
 const LEGEND_BY_ID = Object.fromEntries(LEGENDS.map(l => [l[0], l]));
 const COUNTRY_NATION = { ENG: "イングランド", ESP: "スペイン", ITA: "イタリア", GER: "ドイツ", FRA: "フランス" };
 
 // レジェンドの選手データを作る（同じ id からは毎回同じ能力）
-function createLegend(id) {
+// young: スカウトで見つかったときは16〜18歳の若手。能力は低めだが、全盛期の姿まで速く育つ（移籍金は全盛期の評価のまま）
+function createLegend(id, { young = false } = {}) {
   const L_ = LEGEND_BY_ID[id]; if (!L_) return null;
   const [, name, pos, nat, height, age, ovr, arch, boost, skill] = L_;
   const base = LEGEND_ARCH[arch] || LEGEND_ARCH.CM;
@@ -916,7 +1005,30 @@ function createLegend(id) {
   p.skill = skill; p.is_rare = true; p.legend = id;
   p.potential = Math.max(p.potential, getOvr(p) + 2);
   p.value = Math.round(p.value * 1.3);      // 伝説の選手なので相場より高い
+  if (young) {
+    p.age = randint(16, 18);
+    fitOvr(p, ovr - 22 - (18 - p.age) * 3);  // 16歳で全盛期の-28、18歳で-22くらい
+    p.potential = ovr + 2;
+  }
   return p;
+}
+const TUNE_LEGEND_GROW = 1.2;   // ふつうの選手に比べた成長の速さ（全盛期にたどり着くのは23〜25歳ごろ）
+// 全盛期の能力（若手レジェンドの成長目標）
+const _legendPrime = {};
+function legendPrime(id) {
+  if (!_legendPrime[id]) { const p = createLegend(id); _legendPrime[id] = p ? Object.fromEntries(LEGEND_KEYS.map(k => [k, p[k]])) : {}; }
+  return _legendPrime[id];
+}
+// 若手レジェンドの成長：ふつうより伸びやすく、全盛期に足りない能力から優先して伸びる（全盛期の値まで）
+function legendGrowth(p, gr) {
+  if (!p.legend || p.age > 25 || rnd() >= gr * TUNE_LEGEND_GROW) return null;
+  const pr = legendPrime(p.legend);
+  const gaps = LEGEND_KEYS.map(k => [k, (pr[k] || 0) - p[k]]).filter(([, g]) => g > 0);
+  if (!gaps.length) return null;
+  let r = rnd() * gaps.reduce((a, [, g]) => a + g, 0), s = gaps[0][0];
+  for (const [k, g] of gaps) { r -= g; if (r <= 0) { s = k; break; } }
+  p[s] = Math.min(pr[s], p[s] + (p.age <= 23 ? 2 : 1));
+  return L(`[成長] ${p.name} の ${SKJ[s]} が向上！（レジェンドの片鱗）`, "good");
 }
 const legendState = () => (G.legends = G.legends || { used: [], market: null });
 // まだ登場していないレジェンドから1人選ぶ（国内スカウトのときはその国の出身者だけ）
@@ -933,7 +1045,7 @@ function scoutLegend(type) {
   const id = pickLegendId(type === "overseas" ? null : COUNTRY_NATION[G.country]);
   if (!id) return null;
   legendState().used.push(id);
-  return createLegend(id);
+  return createLegend(id, { young: true });
 }
 
 // 移籍市場：まれにレジェンドが無所属で出る。数日のうちに他クラブが獲得してしまうこともある
@@ -1165,7 +1277,8 @@ function processEvolution(p, { training = false, match = false, seasonEnd = fals
     let gr = 0.02;
     if (training) gr += 0.08;
     if (match) gr += 0.04;
-    if (rnd() < gr) {
+    if (p.legend) { const lg = legendGrowth(p, gr); if (lg) rep = lg; }   // レジェンドは全盛期の姿に向かってだけ伸びる
+    else if (rnd() < gr) {
       const s = choice(p.pos === "GK" ? SKILLS_ALL : FIELD_SKILLS);
       if (p[s] < (p.potential ?? 80)) {
         p[s] += 1;
@@ -2108,7 +2221,7 @@ function scoutTick() {
     // 国内調査は自国中心、海外調査は世界中（日本・韓国も含む）から
     // ごくまれに伝説の名選手を発見（全盛期の年齢・能力。獲得には移籍金が必要）
     const lg = scoutLegend(m.scout_type === "overseas" ? "overseas" : "domestic");
-    if (lg) { m.scout_candidates.push(lg); logs.push(L(`🌟【レジェンド発見】スカウトが伝説の名選手 ${lg.name} との接触に成功しました！`, "rare")); continue; }
+    if (lg) { m.scout_candidates.push(lg); logs.push(L(`🌟【レジェンド発見】スカウトが、のちの伝説 ${lg.name}（${lg.age}歳）を見つけました！`, "rare")); continue; }
     const p = createPlayer({ age: randint(15, 18), pos: m.scout_target_pos, quality: q, country: m.scout_type === "overseas" ? null : G.country });
     // 国内調査ではSランクは出ない（元コードは判定がタイマー0後に行われ常に適用されていた）
     if (m.scout_type !== "overseas") p.potential = Math.min(p.potential, 90);
@@ -3917,7 +4030,7 @@ const SHEETS = {
       body: `<div class="pd-top"><span class="pos pos-${p.pos} lg">${p.pos}</span>
         <div class="pd-id"><b>${h(p.name)}</b><small>${p.age}歳${s.team ? ` · ${h(s.team)}` : ""}</small></div>
         <div class="pd-ovr ${ovrClass(ovr)}"><small>総合</small>${ovr}</div></div>
-        ${p.legend ? `<div class="legendbox"><b>🌟 レジェンド</b><span>往年の名選手が全盛期の姿で登場。年齢とともに能力は少しずつ落ちていきます。</span></div>` : ""}
+        ${p.legend ? `<div class="legendbox"><b>🌟 レジェンド</b><span>${p.age <= 22 && getOvr(p) < (LEGEND_BY_ID[p.legend] || [])[6] - 3 ? `のちの伝説となる若き才能。ふつうの選手より速く成長し、25歳ごろまでに全盛期（総合${(LEGEND_BY_ID[p.legend] || [])[6]}前後）の姿へ近づきます。` : "往年の名選手が全盛期の姿で登場。年齢とともに能力は少しずつ落ちていきます。"}</span></div>` : ""}
         ${p.skill ? `<div class="skillbox ${p.is_rare ? "rare" : ""}"><b>【${h(p.skill)}】</b><span>${h(PLAYER_SKILLS[p.skill] || "")}</span></div>` : ""}
         <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>市場価値</dt><dd>${yen(p.value)}</dd><dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
         <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : "良好"}</dd>
