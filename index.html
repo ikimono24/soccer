@@ -499,6 +499,12 @@ body.live-on { overflow: hidden; }
 #live .bteam .nm small { display: block; }
 #live .bteam .crest, #live .bteam svg, #live .bteam img { margin-bottom: 2px; }
 
+/* レジェンド */
+.psub em.legend { font-style: normal; font-weight: 700; color: var(--accent-ink); background: linear-gradient(90deg, #f3c74a, #e9a612); padding: 0 6px; border-radius: 4px; font-size: 11px; }
+.legendbox { display: grid; gap: 2px; padding: 10px 12px; margin: 10px 0; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, #f3c74a 28%, var(--surface)), var(--surface)); border: 1px solid #e9a612; }
+.legendbox b { font-size: 14px; }
+.legendbox span { font-size: 12.5px; color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -801,6 +807,166 @@ function fullName(nat) {
   if (nat === "KOR") return `${l}・${f}`;
   if (nat === "CHN") return `${l}${f}`;
   return `${f}・${l}`;
+}
+// ===== レジェンド選手 =====
+// 引退した往年の名選手を、全盛期の年齢・能力で登場させる。能力値は実在のデータではなく、
+// プレースタイルの型（ARCH）に得意分野の上乗せをして、総合値（全盛期の評価）に合わせて作る。
+// 登場のしかた：スカウトがまれに発見する／移籍市場にまれに出る（他クラブとの取り合い）。1キャリアで同じ選手は1回だけ。
+
+// プレースタイルの型（能力の配分。総合値はあとで合わせる）
+const LEGEND_ARCH = {
+  //      speed acc str sta jump fin pas dri cro tac mar ref han pos vis com work lead
+  GK: [50, 52, 72, 60, 78, 15, 58, 30, 25, 20, 22, 92, 90, 92, 58, 84, 62, 82],
+  CB: [72, 70, 86, 80, 86, 40, 70, 62, 52, 92, 92, 12, 12, 90, 68, 86, 80, 86],
+  FB: [88, 88, 72, 92, 70, 52, 80, 80, 87, 85, 83, 12, 12, 82, 75, 80, 92, 72],
+  DM: [72, 72, 86, 93, 78, 62, 84, 74, 66, 90, 86, 12, 12, 86, 82, 86, 93, 88],
+  CM: [76, 78, 74, 91, 70, 80, 92, 84, 80, 74, 70, 12, 12, 84, 92, 89, 86, 84],
+  AM: [83, 87, 66, 78, 62, 87, 91, 96, 80, 40, 35, 12, 12, 86, 96, 93, 70, 80],
+  W:  [94, 95, 62, 84, 60, 83, 83, 93, 87, 40, 35, 12, 12, 85, 85, 85, 78, 70],
+  ST: [89, 91, 80, 80, 80, 96, 75, 87, 65, 35, 30, 12, 12, 95, 80, 93, 72, 78],
+  TS: [77, 77, 93, 80, 93, 93, 72, 76, 55, 40, 35, 12, 12, 93, 74, 89, 75, 82],
+};
+const LEGEND_KEYS = ["speed", "acceleration", "strength", "stamina", "jumping", "finishing", "passing", "dribbling", "crossing", "tackling", "marking", "reflexes", "handling", "positioning", "vision", "composure", "workrate", "leadership"];
+
+// [id, 名前, ポジション, 国籍, 身長, 登場時の年齢, 総合値, 型, 得意分野の上乗せ, スキル]
+const LEGENDS = [
+  ["pele", "ペレ", "FW", "ブラジル", 173, 27, 95, "ST", { dribbling: 6, vision: 6, jumping: 5 }, "【極】怪物"],
+  ["maradona", "ディエゴ・マラドーナ", "MF", "アルゼンチン", 165, 26, 95, "AM", { dribbling: 4, acceleration: 4, strength: 6 }, "【極】ファンタジスタ"],
+  ["cruyff", "ヨハン・クライフ", "FW", "オランダ", 178, 27, 94, "AM", { vision: 4, finishing: 4, leadership: 8 }, "【極】ファンタジスタ"],
+  ["beckenbauer", "フランツ・ベッケンバウアー", "DF", "ドイツ", 181, 28, 93, "CB", { passing: 12, vision: 12, leadership: 10, dribbling: 8 }, "【極】皇帝"],
+  ["zidane", "ジネディーヌ・ジダン", "MF", "フランス", 185, 28, 94, "AM", { composure: 4, strength: 10, jumping: 8 }, "【極】ファンタジスタ"],
+  ["ronaldo", "ロナウド", "FW", "ブラジル", 183, 25, 94, "ST", { speed: 5, dribbling: 7, strength: 6 }, "【極】怪物"],
+  ["distefano", "アルフレッド・ディ・ステファノ", "FW", "スペイン", 178, 28, 92, "ST", { stamina: 10, vision: 8, workrate: 10 }, "【極】皇帝"],
+  ["eusebio", "エウゼビオ", "FW", "ポルトガル", 175, 25, 92, "ST", { speed: 4, finishing: 2 }, "エースストライカー"],
+  ["gmuller", "ゲルト・ミュラー", "FW", "ドイツ", 176, 28, 92, "ST", { finishing: 4, positioning: 4, speed: -10 }, "【極】怪物"],
+  ["vanbasten", "マルコ・ファン・バステン", "FW", "オランダ", 188, 25, 93, "TS", { dribbling: 8, composure: 4 }, "エースストライカー"],
+  ["platini", "ミシェル・プラティニ", "MF", "フランス", 179, 28, 92, "AM", { finishing: 4, passing: 2 }, "ナンバー10"],
+  ["zico", "ジーコ", "MF", "ブラジル", 172, 26, 91, "AM", { finishing: 4 }, "ナンバー10"],
+  ["yashin", "レフ・ヤシン", "GK", "ロシア", 189, 28, 92, "GK", { reflexes: 4 }, "【極】神の手"],
+  ["zoff", "ディノ・ゾフ", "GK", "イタリア", 182, 30, 90, "GK", { positioning: 4, leadership: 6 }, "守護神"],
+  ["schmeichel", "ペーター・シュマイケル", "GK", "デンマーク", 191, 28, 91, "GK", { reflexes: 4, leadership: 8 }, "守護神"],
+  ["buffon", "ジャンルイジ・ブッフォン", "GK", "イタリア", 192, 28, 92, "GK", { reflexes: 3, positioning: 3 }, "【極】神の手"],
+  ["kahn", "オリバー・カーン", "GK", "ドイツ", 188, 30, 91, "GK", { reflexes: 4, leadership: 10 }, "守護神"],
+  ["casillas", "イケル・カシージャス", "GK", "スペイン", 185, 27, 90, "GK", { reflexes: 6, handling: -4 }, "守護神"],
+  ["maldini", "パオロ・マルディーニ", "DF", "イタリア", 186, 27, 93, "CB", { speed: 10, crossing: 10, composure: 4 }, "【極】最後の砦"],
+  ["baresi", "フランコ・バレージ", "DF", "イタリア", 176, 28, 92, "CB", { positioning: 4, leadership: 10, jumping: -8 }, "ディフェンスリーダー"],
+  ["cannavaro", "ファビオ・カンナバーロ", "DF", "イタリア", 176, 28, 91, "CB", { jumping: 4, acceleration: 8 }, "鉄壁"],
+  ["puyol", "カルレス・プジョル", "DF", "スペイン", 178, 28, 89, "CB", { workrate: 10, leadership: 8 }, "ディフェンスリーダー"],
+  ["nesta", "アレッサンドロ・ネスタ", "DF", "イタリア", 187, 27, 91, "CB", { tackling: 4, composure: 4 }, "鉄壁"],
+  ["cafu", "カフー", "DF", "ブラジル", 176, 28, 90, "FB", { stamina: 6, workrate: 6 }, "鉄人"],
+  ["rcarlos", "ロベルト・カルロス", "DF", "ブラジル", 168, 27, 90, "FB", { speed: 4, finishing: 14, strength: 8 }, "スピードスター"],
+  ["lahm", "フィリップ・ラーム", "DF", "ドイツ", 170, 28, 89, "FB", { positioning: 6, composure: 6 }, "心臓"],
+  ["ferdinand", "リオ・ファーディナンド", "DF", "イングランド", 189, 28, 89, "CB", { speed: 8, passing: 4 }, "鉄壁"],
+  ["terry", "ジョン・テリー", "DF", "イングランド", 187, 28, 89, "CB", { leadership: 10, speed: -6 }, "ディフェンスリーダー"],
+  ["thuram", "リリアン・テュラム", "DF", "フランス", 182, 28, 89, "CB", { speed: 6, strength: 4 }, "鉄壁"],
+  ["desailly", "マルセル・デサイー", "DF", "フランス", 188, 28, 89, "CB", { strength: 6 }, "鉄人"],
+  ["vidic", "ネマニャ・ヴィディッチ", "DF", "セルビア", 189, 28, 88, "CB", { jumping: 4, strength: 4 }, "鉄壁"],
+  ["matthaus", "ロタール・マテウス", "MF", "ドイツ", 174, 28, 92, "CM", { tackling: 10, finishing: 4, leadership: 10 }, "【極】皇帝"],
+  ["pirlo", "アンドレア・ピルロ", "MF", "イタリア", 177, 28, 90, "CM", { passing: 7, vision: 6, speed: -12 }, "ナンバー10"],
+  ["xavi", "シャビ", "MF", "スペイン", 170, 28, 91, "CM", { passing: 7, vision: 5, composure: 6 }, "ナンバー10"],
+  ["iniesta", "アンドレス・イニエスタ", "MF", "スペイン", 171, 27, 92, "AM", { dribbling: 2, composure: 4 }, "【極】ファンタジスタ"],
+  ["gerrard", "スティーヴン・ジェラード", "MF", "イングランド", 183, 26, 90, "CM", { finishing: 6, strength: 6, leadership: 8 }, "バンディエラ"],
+  ["lampard", "フランク・ランパード", "MF", "イングランド", 184, 27, 90, "CM", { finishing: 10, positioning: 6 }, "鉄人"],
+  ["scholes", "ポール・スコールズ", "MF", "イングランド", 170, 28, 89, "CM", { passing: 6, finishing: 4 }, "バンディエラ"],
+  ["vieira", "パトリック・ヴィエラ", "MF", "フランス", 192, 27, 90, "DM", { dribbling: 6 }, "鉄人"],
+  ["keane", "ロイ・キーン", "MF", "アイルランド", 178, 28, 89, "DM", { leadership: 10, workrate: 6 }, "心臓"],
+  ["seedorf", "クラレンス・セードルフ", "MF", "オランダ", 176, 28, 88, "CM", { strength: 8, finishing: 4 }, "鉄人"],
+  ["kaka", "カカ", "MF", "ブラジル", 186, 25, 91, "AM", { speed: 8, finishing: 4 }, "スピードスター"],
+  ["ronaldinho", "ロナウジーニョ", "MF", "ブラジル", 181, 26, 92, "W", { dribbling: 6, vision: 8, passing: 6 }, "【極】ファンタジスタ"],
+  ["figo", "ルイス・フィーゴ", "MF", "ポルトガル", 180, 28, 90, "W", { crossing: 6, passing: 4 }, "ナンバー10"],
+  ["beckham", "デイヴィッド・ベッカム", "MF", "イングランド", 180, 27, 89, "W", { crossing: 12, passing: 8, speed: -10, dribbling: -10, stamina: 8 }, "ナンバー10"],
+  ["giggs", "ライアン・ギグス", "MF", "ウェールズ", 179, 26, 89, "W", { dribbling: 4 }, "バンディエラ"],
+  ["nakata", "中田英寿", "MF", "日本", 175, 26, 87, "CM", { strength: 8, vision: 6 }, "ナンバー10"],
+  ["parkjisung", "朴智星", "MF", "韓国", 175, 28, 85, "CM", { stamina: 10, workrate: 12, tackling: 8 }, "心臓"],
+  ["nakamura", "中村俊輔", "MF", "日本", 178, 28, 86, "AM", { crossing: 12, passing: 6, speed: -10 }, "ナンバー10"],
+  ["henry", "ティエリ・アンリ", "FW", "フランス", 188, 27, 93, "ST", { speed: 6, acceleration: 4 }, "スピードスター"],
+  ["baggio", "ロベルト・バッジョ", "FW", "イタリア", 174, 27, 92, "AM", { finishing: 6 }, "【極】ファンタジスタ"],
+  ["shearer", "アラン・シアラー", "FW", "イングランド", 183, 26, 90, "TS", { finishing: 4 }, "エースストライカー"],
+  ["batistuta", "ガブリエル・バティストゥータ", "FW", "アルゼンチン", 185, 28, 91, "TS", { finishing: 4, speed: 4 }, "エースストライカー"],
+  ["shevchenko", "アンドリー・シェフチェンコ", "FW", "ウクライナ", 183, 27, 91, "ST", { speed: 4 }, "エースストライカー"],
+  ["romario", "ロマーリオ", "FW", "ブラジル", 168, 28, 91, "ST", { finishing: 4, acceleration: 6, jumping: -10 }, "エースストライカー"],
+  ["bergkamp", "デニス・ベルカンプ", "FW", "オランダ", 188, 28, 90, "AM", { finishing: 6, composure: 4 }, "ナンバー10"],
+  ["best", "ジョージ・ベスト", "FW", "北アイルランド", 175, 25, 91, "W", { dribbling: 6, finishing: 6 }, "スピードスター"],
+  ["totti", "フランチェスコ・トッティ", "FW", "イタリア", 180, 28, 90, "AM", { finishing: 6, speed: -6 }, "バンディエラ"],
+  ["raul", "ラウール", "FW", "スペイン", 180, 27, 89, "ST", { positioning: 4, composure: 4 }, "バンディエラ"],
+  ["drogba", "ディディエ・ドログバ", "FW", "コートジボワール", 189, 28, 90, "TS", { strength: 4, speed: 6 }, "心臓"],
+  ["etoo", "サミュエル・エトー", "FW", "カメルーン", 180, 27, 90, "ST", { speed: 4, workrate: 8 }, "スピードスター"],
+  ["cantona", "エリック・カントナ", "FW", "フランス", 188, 28, 89, "TS", { passing: 10, vision: 10, leadership: 8 }, "ナンバー10"],
+  ["rooney", "ウェイン・ルーニー", "FW", "イングランド", 176, 25, 90, "ST", { workrate: 10, strength: 6 }, "心臓"],
+  ["weah", "ジョージ・ウェア", "FW", "リベリア", 184, 28, 90, "ST", { dribbling: 4, speed: 4 }, "スピードスター"],
+  ["kamamoto", "釜本邦茂", "FW", "日本", 181, 26, 86, "TS", { finishing: 4 }, "エースストライカー"],
+  ["chabumkun", "車範根", "FW", "韓国", 179, 27, 87, "ST", { strength: 6, stamina: 6 }, "鉄人"],
+  ["ibrahimovic", "ズラタン・イブラヒモヴィッチ", "FW", "スウェーデン", 195, 28, 91, "TS", { dribbling: 10, composure: 4 }, "エースストライカー"],
+  ["klose", "ミロスラフ・クローゼ", "FW", "ドイツ", 182, 28, 88, "TS", { positioning: 6, jumping: 4 }, "エースストライカー"],
+];
+const LEGEND_BY_ID = Object.fromEntries(LEGENDS.map(l => [l[0], l]));
+const COUNTRY_NATION = { ENG: "イングランド", ESP: "スペイン", ITA: "イタリア", GER: "ドイツ", FRA: "フランス" };
+
+// レジェンドの選手データを作る（同じ id からは毎回同じ能力）
+function createLegend(id) {
+  const L_ = LEGEND_BY_ID[id]; if (!L_) return null;
+  const [, name, pos, nat, height, age, ovr, arch, boost, skill] = L_;
+  const base = LEGEND_ARCH[arch] || LEGEND_ARCH.CM;
+  const t = { pos };
+  LEGEND_KEYS.forEach((k, i) => (t[k] = Math.max(1, Math.min(99, base[i] + (boost[k] || 0)))));
+  fitOvr(t, ovr);
+  const fixed = { name, nat, pos, age, potential: ovr + 2, height };
+  for (const k of LEGEND_KEYS) fixed[k] = t[k];
+  const p = createPlayer({ fixed });
+  p.skill = skill; p.is_rare = true; p.legend = id;
+  p.potential = Math.max(p.potential, getOvr(p) + 2);
+  p.value = Math.round(p.value * 1.3);      // 伝説の選手なので相場より高い
+  return p;
+}
+const legendState = () => (G.legends = G.legends || { used: [], market: null });
+// まだ登場していないレジェンドから1人選ぶ（国内スカウトのときはその国の出身者だけ）
+function pickLegendId(nation = null) {
+  const st = legendState();
+  const pool = LEGENDS.filter(l => !st.used.includes(l[0]) && (!nation || l[3] === nation));
+  return pool.length ? choice(pool)[0] : null;
+}
+
+// スカウトでの発見（1人分の候補ごとに判定）
+const LEGEND_SCOUT_RATE = { overseas: .05, domestic: .025 };
+function scoutLegend(type) {
+  if (rnd() >= (type === "overseas" ? LEGEND_SCOUT_RATE.overseas : LEGEND_SCOUT_RATE.domestic)) return null;
+  const id = pickLegendId(type === "overseas" ? null : COUNTRY_NATION[G.country]);
+  if (!id) return null;
+  legendState().used.push(id);
+  return createLegend(id);
+}
+
+// 移籍市場：まれにレジェンドが無所属で出る。数日のうちに他クラブが獲得してしまうこともある
+const LEGEND_MARKET = { appear: .025, days: 5, rivalSign: .22 };
+function legendMarketTick() {
+  const st = legendState(), logs = [];
+  if (st.market) {
+    const mk = st.market;
+    if (G.date > mk.until) { st.market = null; logs.push(L(`📰 レジェンド ${LEGEND_BY_ID[mk.id][1]} の争奪戦は決着せず、去就は白紙に戻りました。`, "muted")); return logs; }
+    if (rnd() < LEGEND_MARKET.rivalSign) {
+      // 他クラブ（1部で資金のあるクラブ）が獲得
+      const p = createLegend(mk.id);
+      const buyers = G.teams.filter((t, i) => i !== G.myIdx && t.division === 1 && t.money >= p.value * .5);
+      const buyer = buyers.length ? choice(buyers) : null;
+      st.market = null;
+      if (buyer) {
+        buyer.roster.push(p); buyer.money -= Math.min(buyer.money, p.value);
+        G.news = G.news || [];
+        G.news.unshift({ date: G.date, name: p.name, pos: p.pos, age: p.age, ovr: getOvr(p), from: "無所属（FA）", to: buyer.name, fee: p.value, legend: true });
+        logs.push(L(`📰【レジェンド】${p.name} の争奪戦は ${buyer.name} が制しました！`, "rare"));
+      }
+    }
+    return logs;
+  }
+  if (rnd() < LEGEND_MARKET.appear) {
+    const id = pickLegendId();
+    if (id) {
+      legendState().used.push(id);
+      st.market = { id, until: addDays(G.date, LEGEND_MARKET.days) };
+      logs.push(L(`🌟【レジェンド】伝説の名選手 ${LEGEND_BY_ID[id][1]} が移籍市場に現れました！ 各クラブが獲得に動いています（${LEGEND_MARKET.days}日以内）`, "rare"));
+    }
+  }
+  return logs;
 }
 
 // =====================================================================
@@ -1940,6 +2106,9 @@ function scoutTick() {
   const n = randint(1, 3);
   for (let i = 0; i < n; i++) {
     // 国内調査は自国中心、海外調査は世界中（日本・韓国も含む）から
+    // ごくまれに伝説の名選手を発見（全盛期の年齢・能力。獲得には移籍金が必要）
+    const lg = scoutLegend(m.scout_type === "overseas" ? "overseas" : "domestic");
+    if (lg) { m.scout_candidates.push(lg); logs.push(L(`🌟【レジェンド発見】スカウトが伝説の名選手 ${lg.name} との接触に成功しました！`, "rare")); continue; }
     const p = createPlayer({ age: randint(15, 18), pos: m.scout_target_pos, quality: q, country: m.scout_type === "overseas" ? null : G.country });
     // 国内調査ではSランクは出ない（元コードは判定がタイマー0後に行われ常に適用されていた）
     if (m.scout_type !== "overseas") p.potential = Math.min(p.potential, 90);
@@ -1963,7 +2132,7 @@ function makeNewGame(world, myIdx) {
 
 // ---------------- セーブの圧縮・移行 ----------------
 const PKEYS = ["name", "pos", "age", "potential", "value", "condition", "fatigue", "retired", "injury_days", "league_goals", "cup_goals",
-  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height"];
+  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend"];
 const encP = p => PKEYS.map(k => p[k] ?? null);
 const decP = a => { const p = {}; PKEYS.forEach((k, i) => (p[k] = a[i])); return p; };
 function encodeSave(g) {
@@ -3217,6 +3386,7 @@ function endDay(carry = []) {
   for (const t of G.teams) for (const p of t.roster) if (p.injury_days > 0) p.injury_days -= 1;
   const wasSunday = weekday(D(G.date)) === 6;
   G.date = addDays(G.date, 1);
+  logs.push(...legendMarketTick());
   if (month() === 7 && D(G.date).getUTCDate() === 1) {
     logs.push(...seasonRollover(D(G.date).getUTCFullYear()));
     logs.push(L(`✨ ${G.season_year}/${G.season_year + 1} シーズンが開幕しました！`, "head"));
@@ -3341,7 +3511,7 @@ function playerRow(p, { act = "", idx = 0, right = "", team = "", cls = "" } = {
   const ovr = getOvr(p), inj = p.injury_days > 0, cond = Math.max(0, Math.min(100, p.condition));
   return `<button class="prow${inj ? " inj" : ""}${cls ? " " + cls : ""}" ${act ? `data-act="${act}" data-arg="${idx}"` : "disabled"}>
     <span class="pos pos-${p.pos}">${p.pos}</span>
-    <span class="pmain"><span class="pname">${h(p.name)}</span>${team ? `<span class="pteam">${team}</span>` : ""}<span class="psub">${p.age}歳${p.height ? ` · ${p.height}cm` : ""}${p.nat ? ` · ${h(natName(p))}` : ""}${p.skill ? ` · <em class="${p.is_rare ? "rare" : "skill"}">${h(p.skill)}</em>` : ""}${inj ? ` · <em class="bad">負傷 ${p.injury_days}日</em>` : ""}</span></span>
+    <span class="pmain"><span class="pname">${h(p.name)}</span>${team ? `<span class="pteam">${team}</span>` : ""}<span class="psub">${p.legend ? `<em class="legend">レジェンド</em> · ` : ""}${p.age}歳${p.height ? ` · ${p.height}cm` : ""}${p.nat ? ` · ${h(natName(p))}` : ""}${p.skill ? ` · <em class="${p.is_rare ? "rare" : "skill"}">${h(p.skill)}</em>` : ""}${inj ? ` · <em class="bad">負傷 ${p.injury_days}日</em>` : ""}</span></span>
     <span class="povr ${ovrClass(ovr)}">${ovr}</span>
     <span class="ppot ${potClass(p.potential)}">${potRank(p.potential)}</span>
     ${right || `<span class="pcond"><i class="${cond < 50 ? "low" : ""}" style="width:${cond}%"></i><b>${cond}</b></span>`}
@@ -3657,7 +3827,7 @@ function renderNow() {
   const chips = `<div class="chiprow">${modes.map(([k, l]) => `<button class="${mode === k ? "on" : ""}" data-act="scorer-mode" data-arg="${k}">${h(l)}</button>`).join("")}</div>`;
   if (mode === "news") {
     const news = G.news || [];
-    return chips + `<h2 class="ch">移籍ニュース<small>移籍期間（1・7・8月）の日曜日に成立</small></h2>` + (news.length ? `<ul class="news">${news.slice(0, 150).map(n => `<li><span class="nd">${shortDate(n.date)}</span><div><b>${h(n.name)}</b><small>${n.pos}・${n.age}歳・総合${n.ovr}</small><span>${h(n.from)} → ${h(n.to)}</span></div><em>${yen(n.fee)}</em></li>`).join("")}</ul>` : `<p class="muted">まだ移籍は成立していません。移籍期間の日曜日にクラブ同士の移籍が発生します。</p>`);
+    return chips + `<h2 class="ch">移籍ニュース<small>移籍期間（1・7・8月）の日曜日に成立</small></h2>` + (news.length ? `<ul class="news">${news.slice(0, 150).map(n => `<li><span class="nd">${shortDate(n.date)}</span><div><b>${n.legend ? "🌟 " : ""}${h(n.name)}</b><small>${n.pos}・${n.age}歳・総合${n.ovr}</small><span>${h(n.from)} → ${h(n.to)}</span></div><em>${yen(n.fee)}</em></li>`).join("")}</ul>` : `<p class="muted">まだ移籍は成立していません。移籍期間の日曜日にクラブ同士の移籍が発生します。</p>`);
   }
   const st = T.statKind || "goals";
   const title = mode === "cup" ? CUP_NAME : leagueName(mode.slice(0, 3), Number(mode.slice(3)));
@@ -3747,6 +3917,7 @@ const SHEETS = {
       body: `<div class="pd-top"><span class="pos pos-${p.pos} lg">${p.pos}</span>
         <div class="pd-id"><b>${h(p.name)}</b><small>${p.age}歳${s.team ? ` · ${h(s.team)}` : ""}</small></div>
         <div class="pd-ovr ${ovrClass(ovr)}"><small>総合</small>${ovr}</div></div>
+        ${p.legend ? `<div class="legendbox"><b>🌟 レジェンド</b><span>往年の名選手が全盛期の姿で登場。年齢とともに能力は少しずつ落ちていきます。</span></div>` : ""}
         ${p.skill ? `<div class="skillbox ${p.is_rare ? "rare" : ""}"><b>【${h(p.skill)}】</b><span>${h(PLAYER_SKILLS[p.skill] || "")}</span></div>` : ""}
         <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>市場価値</dt><dd>${yen(p.value)}</dd><dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
         <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : "良好"}</dd>
@@ -3868,6 +4039,8 @@ function buildMarket() {
   list.push(...tmp.slice(0, 5));
   for (let i = 0; i < 5; i++) list.push({ player: createPlayer({ quality: "scout_high" }), fromIdx: null });
   shuffle(list);
+  const lm = legendState().market;
+  if (lm) list.unshift({ player: createLegend(lm.id), fromIdx: null, legend: true });   // 争奪中のレジェンドは先頭に
   T.market = list.slice(0, 8); T.marketDate = G.date;
 }
 
@@ -3949,7 +4122,8 @@ const ACTIONS = {
       m.money -= p.value;
       if (it.fromIdx != null) { const ft = G.teams[it.fromIdx]; ft.money += p.value; const k = ft.roster.indexOf(p); if (k >= 0) ft.roster.splice(k, 1); }
       m.roster.push(p);
-      msg = L(`✅ ${p.name} が ${m.name} に電撃移籍しました！`, "good");
+      if (it.legend) legendState().market = null;
+      msg = L(it.legend ? `🌟 伝説の名選手 ${p.name} が ${m.name} に加入しました！` : `✅ ${p.name} が ${m.name} に電撃移籍しました！`, "good");
     }
     T.sheets.pop(); topSheet().msg = msg; persist(); renderSheet(); render();
   },
@@ -3985,17 +4159,22 @@ SHEETS.player = s => {
   const c = SHEETS._player(s);
   if (s.mode === "scout") {
     const m = me();
-    c.body += m.roster.length >= MAX_ROSTER ? `<p class="bad">チームが満員（${MAX_ROSTER}人）です。</p>` : `<button class="btn primary wide" data-act="scout-take">ユースから昇格させる</button>`;
+    c.body += m.roster.length >= MAX_ROSTER ? `<p class="bad">チームが満員（${MAX_ROSTER}人）です。</p>` : (s.p.legend ? (m.money < s.p.value ? `<p class="bad">資金が足りません（移籍金 ${yen(s.p.value)}）。</p>` : `<button class="btn primary wide" data-act="scout-take">移籍金 ${yen(s.p.value)} で獲得する</button>`) : `<button class="btn primary wide" data-act="scout-take">ユースから昇格させる</button>`);
   }
   return c;
 };
 ACTIONS["scout-take"] = () => {
   const s = topSheet(), m = me();
+  const cand = m.scout_candidates[s.idx];
+  if (cand && cand.legend) {   // レジェンドは移籍金が必要
+    if (m.money < cand.value) { toast("資金が足りません", "bad"); return; }
+    m.money -= cand.value;
+  }
   const p = m.scout_candidates.splice(s.idx, 1)[0];
   p.league_goals = 0; p.cup_goals = 0;
   m.roster.push(p);
   m.scout_status = "IDLE"; m.scout_candidates = [];
-  persist(); closeSheet(true); toast(`${p.name} がユースから昇格しました！`, "good");
+  persist(); closeSheet(true); toast(p.legend ? `🌟 伝説の名選手 ${p.name} が加入しました！` : `${p.name} がユースから昇格しました！`, "good");
 };
 
 document.addEventListener("click", e => {
