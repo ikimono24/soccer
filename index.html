@@ -604,6 +604,10 @@ body.live-on { overflow: hidden; }
 .focusopt small { font-size: 12px; color: var(--muted); }
 .focusopt.on { border-color: var(--pitch); box-shadow: inset 0 0 0 1px var(--pitch); background: color-mix(in srgb, var(--pitch) 10%, var(--surface)); }
 
+/* シートの中の一覧が縮んで下が見えなくなるのを防ぐ（シート全体をスクロールさせる） */
+.panel-body > * { flex-shrink: 0; }
+.panel.re { animation: none; }
+
 </style>
 </head>
 <body>
@@ -4300,13 +4304,20 @@ function openSheet(s) { T.sheets.push(s); renderSheet(); }
 function closeSheet(all) { if (all) T.sheets = []; else T.sheets.pop(); renderSheet(); render(); }
 function renderSheet() {
   const s = T.sheets[T.sheets.length - 1];
-  if (!s) { $sheet.hidden = true; $sheet.innerHTML = ""; document.body.classList.remove("sheet-on"); return; }
+  if (!s) { $sheet.hidden = true; $sheet.innerHTML = ""; delete $sheet.dataset.key; T.sheetScroll = {}; document.body.classList.remove("sheet-on"); return; }
   document.body.classList.add("sheet-on");
   $sheet.hidden = false;
   const content = SHEETS[s.kind](s);
-  $sheet.innerHTML = `<div class="scrim" data-act="sheet-close"></div><div class="panel" role="dialog" aria-modal="true">
+  // 前のシートのスクロール位置を覚えておき、同じシートに戻ったときに戻す
+  const prevBody = $sheet.querySelector(".panel-body"), prevKey = $sheet.dataset.key;
+  if (prevBody && prevKey) T.sheetScroll = Object.assign(T.sheetScroll || {}, { [prevKey]: prevBody.scrollTop });
+  const key = `${T.sheets.length}:${s.kind}`, same = prevKey === key || (T.sheetScroll && T.sheetScroll[key] != null && prevKey && prevKey !== key);
+  $sheet.dataset.key = key;
+  $sheet.innerHTML = `<div class="scrim" data-act="sheet-close"></div><div class="panel${same ? " re" : ""}" role="dialog" aria-modal="true">
     <div class="panel-head"><button class="iconbtn" data-act="sheet-close" aria-label="戻る">${T.sheets.length > 1 ? "‹" : "×"}</button><h2>${content.title}</h2></div>
     <div class="panel-body">${content.body}</div></div>`;
+  const nb = $sheet.querySelector(".panel-body");
+  if (nb && T.sheetScroll && T.sheetScroll[key] != null && same) nb.scrollTop = T.sheetScroll[key];
 }
 
 const SHEETS = {
