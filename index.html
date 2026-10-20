@@ -95,8 +95,8 @@ body.title-on #app { padding-bottom: 0; }
 .main { display: flex; flex-direction: column; gap: 12px; padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
 /* ---------- タブバー ---------- */
-.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); max-width: 560px; margin: 0 auto; }
-.tabs button { background: none; border: 0; padding: 8px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; color: var(--muted); }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(6, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); max-width: 560px; margin: 0 auto; }
+.tabs button { background: none; border: 0; padding: 8px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
 .tabs button.on { color: var(--pitch); font-weight: 700; }
 .tabs button.on .ic { background: var(--pitch); }
 .ic { width: 22px; height: 22px; background: var(--muted); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
@@ -525,6 +525,37 @@ body.live-on { overflow: hidden; }
 .nextbar { position: fixed; left: 0; right: 0; bottom: calc(57px + env(safe-area-inset-bottom, 0px)); z-index: 19; max-width: 560px; margin: 0 auto; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(6px); border-top: 1px solid var(--line); }
 .nextbar .btn { min-height: 50px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 #app:has(.nextbar) { padding-bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+
+/* ---- 戦術タブ ---- */
+.ic-tactics { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v6h14V5zm0 8v6h14v-6z' fill-rule='evenodd'/%3E%3Ccircle cx='12' cy='12' r='2.2'/%3E%3C/svg%3E"); }
+.fchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fchips button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 11px; font-family: var(--f-num); font-weight: 700; font-size: 15px; color: var(--ink); }
+.fchips button.on { background: var(--pitch); border-color: var(--pitch); color: #fff; }
+.tboard { position: relative; aspect-ratio: 68 / 88; max-width: 100%; border-radius: 10px; background: repeating-linear-gradient(180deg, #1d5c43 0 9%, #226a4d 9% 18%); overflow: hidden; }
+.tlines { position: absolute; inset: 3%; border: 2px solid rgba(255,255,255,.55); border-radius: 2px; }
+.tlines::before { content: ""; position: absolute; left: 22%; right: 22%; top: -2px; height: 14%; border: 2px solid rgba(255,255,255,.55); border-top: 0; }
+.tlines::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: -2px; height: 14%; border: 2px solid rgba(255,255,255,.55); border-bottom: 0; }
+.tslot { position: absolute; transform: translate(-50%, -50%); width: 21%; display: grid; justify-items: center; gap: 1px; padding: 4px 2px 5px; border-radius: 9px; border: 2px solid rgba(255,255,255,.85); background: rgba(10,22,16,.78); color: #f1f5ef; }
+.tslot .pos { width: 30px; height: 18px; font-size: 11px; }
+.tslot b { font-size: 11.5px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tslot small { font-family: var(--f-num); font-size: 13px; font-weight: 700; color: var(--led); line-height: 1; }
+.tslot.off { border-color: var(--bad); }
+.tslot.auto { border-style: dashed; }
+.tcond { display: block; width: 80%; height: 3px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
+.tcond em { display: block; height: 100%; background: var(--good); }
+.tcond.low em { background: var(--bad); }
+.tseg button { font-size: 12px; padding-inline: 2px; }
+.tdesc { margin: 0 0 6px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.tpicks { display: grid; gap: 6px; }
+.tpick { display: grid; grid-template-columns: 7.5em minmax(0,1fr); grid-template-rows: auto auto; column-gap: 8px; text-align: left; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; color: var(--ink); }
+.tpick span { grid-row: span 2; font-size: 12.5px; color: var(--muted); align-self: center; }
+.tpick b { font-size: 14.5px; overflow-wrap: anywhere; }
+.tpick small { font-size: 11.5px; color: var(--muted); }
+.prow.fit { box-shadow: inset 3px 0 0 var(--good); }
+.prow.sel { box-shadow: inset 3px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.twhere { justify-self: end; font-size: 11.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.twhere.xi { background: color-mix(in srgb, var(--pitch) 16%, var(--surface)); color: var(--pitch); }
+.twhere.inj { color: var(--bad); }
 
 </style>
 </head>
@@ -1559,8 +1590,9 @@ function slotsFor(formation) {
   return out;
 }
 // 先発11人をスロットに割り当て（GK→DF→MF→FW の順、足りない分は残りから）
-function formationSlots(starters, formation) {
+function formationSlots(starters, formation, ordered = false) {
   const slots = slotsFor(formation);
+  if (ordered && starters.length === slots.length) return slots.map((s, i) => ({ s, p: starters[i] }));
   const pool = starters.slice();
   const take = pos => { const i = pool.findIndex(p => p.pos === pos); return i >= 0 ? pool.splice(i, 1)[0] : null; };
   const res = slots.map(s => ({ s, p: take(s.role) }));
@@ -1569,7 +1601,27 @@ function formationSlots(starters, formation) {
 }
 
 
-function* matchGen(home, away, { verbose = false, isCup = false, myStarters = null, playerTeam = null, world = null } = {}) {
+// ===== 戦術 =====
+// 攻撃スタイル：攻撃の形の出やすさ（倍率）と、ボールを持っているときの主導権（keep）
+const TAC_STYLE = {
+  balance:    { name: "バランス", desc: "状況に合わせて攻め方を変える", w: {} , keep: 0 },
+  possession: { name: "ポゼッション", desc: "パスをつないで崩す。ボールを持つ時間が長くなるが、速攻は少ない", w: { combo: 1.7, o2: 1.3, cross: .7, thru: .7, drib: .9 }, keep: 25 },
+  wing:       { name: "サイド攻撃", desc: "サイドから崩してクロスを入れる。背の高いFWがいると効果的", w: { cross: 2.0, drib: 1.1, combo: .7, thru: .75 }, keep: 0, crossQ: 18 },
+  counter:    { name: "カウンター", desc: "奪ったら素早く裏へ。ボールは相手に持たせる", w: { thru: 1.9, drib: 1.2, o2: 1.1, combo: .6 }, keep: -20, transition: 8 },
+};
+// 守備ライン：高いほど前から奪いに行く（press）が、裏を取られやすく（behind）、体力も使う（tired）
+const TAC_LINE = {
+  high: { name: "高い（前から奪う）", desc: "ボールを奪い返しやすいが、裏のスペースを突かれやすく体力を使う", press: 22, behind: 11, tired: 5 },
+  mid:  { name: "標準", desc: "攻守のバランスをとる", press: 0, behind: 0, tired: 0 },
+  low:  { name: "低い（引いて守る）", desc: "裏を取られにくいが、ボールを奪い返しにくい", press: -18, behind: -13, tired: -2 },
+};
+const tacOf = t => Object.assign({ style: "balance", line: "mid" }, (t && t.tactics) || {});
+// 指名された選手（名前）を、ピッチ上の選手から探す
+const onPitch = (S_, name) => name ? S_.find(p => p.name === name) || null : null;
+// キャプテン：指名があればその選手、なければ統率力が一番高い選手
+const captainOf = (S_, t) => onPitch(S_, tacOf(t).captain) || S_.reduce((a, b) => ((parseInt(b.leadership) || 0) > (parseInt(a.leadership) || 0) ? b : a), S_[0]);
+
+function* matchGen(home, away, { verbose = false, isCup = false, myStarters = null, myOrdered = false, playerTeam = null, world = null } = {}) {
   const hS = playerTeam === home && myStarters ? myStarters.slice() : getStarters(home);
   const aS = playerTeam === away && myStarters ? myStarters.slice() : getStarters(away);
   const hPlayed = hS.slice(), aPlayed = aS.slice();
@@ -1589,7 +1641,8 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   const ST = TUNE2.stats;
   // ---- 担当位置とボール位置 ----
   const SL = new Map();      // 選手 → フォーメーション上の担当位置
-  for (const [S_, t_] of [[hS, home], [aS, away]]) for (const { s, p } of formationSlots(S_, t_.formation || "4-4-2")) SL.set(p, s);
+  for (const [S_, t_] of [[hS, home], [aS, away]]) for (const { s, p } of formationSlots(S_, t_.formation || "4-4-2", myOrdered && t_ === playerTeam && !!myStarters)) SL.set(p, s);
+  const TAC = { home: tacOf(home), away: tacOf(away) };
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
   let ballH = [.5, .5];      // ボールの位置（ホームが右へ攻める向きの座標）
   const other_ = sd => sd === "home" ? "away" : "home";
@@ -1643,6 +1696,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       else if (verbose && scene === 6) yield ev(min, `✨ 皇帝の威光により、${away.name} の全選手が活力を維持している！`, "rare", 500);
     }
     if (poss === "home") hMid += TUNE2.possBonus; else aMid += TUNE2.possBonus;
+    // キャプテンの統率力、攻撃スタイル（持っているとき）、守備ライン（持っていないとき＝奪いに行く強さ）
+    hMid += (parseInt(captainOf(hS, home).leadership) || 50) * .12; aMid += (parseInt(captainOf(aS, away).leadership) || 50) * .12;
+    const ST_ = { home: TAC_STYLE[TAC.home.style] || TAC_STYLE.balance, away: TAC_STYLE[TAC.away.style] || TAC_STYLE.balance };
+    const LN_ = { home: TAC_LINE[TAC.home.line] || TAC_LINE.mid, away: TAC_LINE[TAC.away.line] || TAC_LINE.mid };
+    if (poss === "home") { hMid += ST_.home.keep; aMid += LN_.away.press; } else { aMid += ST_.away.keep; hMid += LN_.home.press; }
     let atkTeam, atkS, defS;
     if (hMid > aMid) { atkTeam = home; atkS = hS; defS = aS; }
     else { atkTeam = away; atkS = aS; defS = hS; }
@@ -1756,7 +1814,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     // コーナーキック：キッカー（クロス精度）→ 空中戦（ジャンプ・フィジカル）→ ヘディング
     function* corner(from) {
       setPieces++; if (ST) ST.ck++;
-      const taker = best(A, p => V(p, "crossing"));
+      const taker = onPitch(A, TAC[side].ck) || best(A, p => V(p, "crossing"));
       const targets = A.filter(p => p !== taker && p.pos !== "GK");
       const target = targets.reduce((a, b) => (V(b, "jumping") + V(b, "strength") * .5 + (HT(b) - 181) + rnd() * 30 > V(a, "jumping") + V(a, "strength") * .5 + (HT(a) - 181) + rnd() * 30 ? b : a));
       const marker = best(D, p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + (p.pos === "DF" ? 10 : 0));
@@ -1784,13 +1842,13 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       if (verbose) { yield ev(min, `${fouler.name} のファウル！`, "muted", 700); yield act("foul", { by: fouler, on: victim, inBox }); }
       if (inBox) {
         if (ST) ST.pk++;
-        const taker = best(A, p => V(p, "composure") * .6 + V(p, "finishing") * .4);
+        const taker = onPitch(A, TAC[side].pk) || best(A, p => V(p, "composure") * .6 + V(p, "finishing") * .4);
         if (verbose) { yield ev(min, "PK！ 主審がペナルティスポットを指す", "info", 900); yield act("pk", { taker, gk }); }
         yield* finish(taker, "pk", null, "pk");
         return;
       }
       // エリア外のFK：ゴール正面なら直接、サイドならクロスを入れる
-      const taker = best(A, p => V(p, "passing") * .5 + V(p, "finishing") * .3 + V(p, "composure") * .2);
+      const taker = onPitch(A, TAC[side].fk) || best(A, p => V(p, "passing") * .5 + V(p, "finishing") * .3 + V(p, "composure") * .2);
       const direct = rnd() < .55;
       if (ST) ST.fk++;
       if (verbose) yield act("freekick", { taker, direct, wall: byPos(D, "DF", "MF").slice(0, 4), wing: rnd() < .5 ? 0 : 1 });
@@ -1867,7 +1925,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         const [rx, ry] = posL(R, side, true);
         const W = nearPick(role(A, "MF", "FW").filter(p => p !== R).length ? role(A, "MF", "FW").filter(p => p !== R) : OF(A).filter(p => p !== R), side, true, Math.min(.85, rx + .1), cl(ry + (ry > .5 ? -.12 : .12), .2, .8), 12);
         const Dd = nearPick(role(D, "DF", "MF"), oth, false, ...flip([rx + .06, ry]), 10);
-        const q = V(R, "acceleration") * .5 + V(R, "speed") * .3 + V(W, "passing") * .4 - (V(Dd, "speed") * .4 + V(Dd, "positioning") * .5) + randint(0, TUNE2.o2Rand);
+        const q = V(R, "acceleration") * .5 + V(R, "speed") * .3 + V(W, "passing") * .4 - (V(Dd, "speed") * .4 + V(Dd, "positioning") * .5) + randint(0, TUNE2.o2Rand) + behind + trans;
         const ok = q > TUNE2.o2Thr + penalty;
         if (verbose) { yield ev(min, `${R.name} が ${W.name} とのワンツーを狙う`, "", 700); yield act("wall", { from: R, to: W, by: Dd }); yield act("ret", { from: W, to: R, by: Dd, ok }); }
         if (ok) {
@@ -1890,7 +1948,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       const wing = nearPick(OF(A).filter(p => p !== r1 || OF(A).length < 3), side, true, .66, wingY, 16, p => V(p, "crossing") / 70);
       const wCross = V(wing, "crossing") * .8;
       // 攻撃の形：ドリブル / スルーパス / クロス / パス交換 / ワンツー（選手の特徴で重みづけ）
-      const RW = [["drib", wDrib], ["thru", wThru], ["cross", wCross], ["combo", wCombo], ["o2", wO2]];
+      const sw = ST_[side].w;
+      const RW = [["drib", wDrib], ["thru", wThru], ["cross", wCross], ["combo", wCombo], ["o2", wO2]].map(([k, w]) => [k, w * (sw[k] || 1)]);
+      // カウンター：奪ってすぐの攻撃は相手の守備が整っていない
+      const trans = regain ? (ST_[side].transition || 0) : 0;
+      const behind = LN_[oth].behind;     // 相手の守備ラインが高いほど裏を突きやすい
       let rr = rnd() * RW.reduce((a, [, w]) => a + w, 0), route = "drib";
       for (const [k, w] of RW) { rr -= w; if (rr <= 0) { route = k; break; } }
       if (ST) ST["r_" + route] = (ST["r_" + route] || 0) + 1;
@@ -1909,7 +1971,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         const inBoxDuel = pAtk.pos === "FW" ? rnd() < .4 : rnd() < .2;
         if (verbose) yield act("duel", { atk: pAtk, def: pDef, box: inBoxDuel });
         if (pDef.skill === "鉄壁") { stre *= 1.5; if (verbose) yield { ...ev(min, `🛡️ ${pDef.name} の『鉄壁』が立ちはだかる！`, "info", 400), who: pDef }; }
-        let chance = (drib + accel * 0.5) - (mark + stre * 0.5);
+        let chance = (drib + accel * 0.5) - (mark + stre * 0.5) + trans;
         chance += (181 - HT(pAtk)) * TUNE2.agiH + (HT(pDef) - HT(pAtk)) * TUNE2.agiDiff;   // 小柄な選手は身のこなしで有利
         if (pAtk.skill === "スピードスター") { chance += 10; if (verbose) yield { ...ev(min, `⚡ ${pAtk.name} の『スピードスター』が発動！爆速で抜き去る！`, "skill", 400), who: pAtk }; }
         if (pDef.skill === "ディフェンスリーダー") { chance -= 10; if (verbose) yield { ...ev(min, `🛡️ ${pDef.name} の『ディフェンスリーダー』が発動！隙を見せない！`, "info", 400), who: pDef }; }
@@ -1951,7 +2013,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         if (r1.skill === "ナンバー10") { q += 10; if (verbose) yield { ...ev(min, `🎯 『ナンバー10』${r1.name} のパスが通る！`, "good", 400), who: r1 }; }
         if (lineDef.skill === "ディフェンスリーダー") q -= 10;
         if (lineDef.skill === "【極】最後の砦") q -= 25;
-        const ok = q + randint(0, TUNE2.thruRand) > TUNE2.thruThr + penalty;
+        const ok = q + randint(0, TUNE2.thruRand) + behind + trans > TUNE2.thruThr + penalty;
         if (verbose) yield act("through", { from: r1, to: st, by: lineDef, ok });
         if (ok) {
           if (ST) ST.brk++;
@@ -1969,14 +2031,14 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         const target = nearPick(role(A, "FW", "MF").filter(p => p !== wing), side, true, .88, .5, 16, p => (V(p, "jumping") + V(p, "finishing") * .5 + (HT(p) - 181)) / 100);
         const marker = nearPick(role(D, "DF").filter(p => p !== fb), oth, false, ...flip([.9, .5]), 12, p => (V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181)) / 100) || best(D.filter(p => p !== fb), p => V(p, "jumping"));
         if (verbose) yield ev(min, `${wing.name} がサイドを駆け上がる`, "", 700);
-        const c1 = V(wing, "crossing") * .7 + V(wing, "speed") * .3 - (V(fb, "marking") * .5 + V(fb, "speed") * .3) + randint(0, TUNE2.crossRand);
+        const c1 = V(wing, "crossing") * .7 + V(wing, "speed") * .3 - (V(fb, "marking") * .5 + V(fb, "speed") * .3) + randint(0, TUNE2.crossRand) + (ST_[side].crossQ || 0);
         if (c1 < TUNE2.crossThr * .6 + penalty) {
           // クロスを上げさせない → スローインかCK
           if (verbose) yield act("blockcross", { from: wing, by: fb, wing: wingSide });
           if (setPieces < 2 && rnd() < TUNE2.cornerFromClear) { if (verbose) yield ev(min, `${fb.name} がクロスをブロック。コーナーキックに`, "muted", 700); yield* corner("clear"); }
           else { endPoss = side; setBall(side, .8, wingY); if (verbose) { yield ev(min, `${fb.name} が体を寄せてスローインに逃れる`, "muted", 700); yield act("throw", { wing: wingSide, attacking: true, at: [.8, wingY], taker: wing, to: nearPick(OF(A).filter(p => p !== wing), side, true, .75, wingY, 14) }); } }
         } else {
-          const aer = V(wing, "crossing") * .35 + V(target, "jumping") * .4 + V(target, "strength") * .25 + AIR(target) + randint(0, 50);
+          const aer = V(wing, "crossing") * .35 + V(target, "jumping") * .4 + V(target, "strength") * .25 + AIR(target) + randint(0, 50) + (ST_[side].crossQ || 0) * .5;
           const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50);
           const ok = aer > def;
           if (verbose) { yield ev(min, `${wing.name} がクロス！`, "", 700); yield act("cross", { from: wing, to: target, by: marker, wing: wingSide, ok }); }
@@ -2033,10 +2095,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   for (const p of hS) if (hPart.get(p) === 1) hPart.set(p, 3);
   for (const p of aS) if (aPart.get(p) === 1) aPart.set(p, 3);
   const applyCond = (team, part) => {
+    const tired = (TAC_LINE[tacOf(team).line] || TAC_LINE.mid).tired;   // 守備ラインが高いほど体力を使う
     for (const p of team.roster) {
       const st = part.get(p) || 0;
-      if (st === 3) { p.condition = Math.max(5, p.condition - (28 - Math.floor(p.stamina / 10))); p.fatigue += 10; }
-      else if (st === 1 || st === 2) { p.condition = Math.max(5, p.condition - (15 - Math.floor(p.stamina / 20))); p.fatigue += 5; }
+      if (st === 3) { p.condition = Math.max(5, p.condition - (28 - Math.floor(p.stamina / 10)) - tired); p.fatigue += 10; }
+      else if (st === 1 || st === 2) { p.condition = Math.max(5, p.condition - (15 - Math.floor(p.stamina / 20)) - Math.round(tired / 2)); p.fatigue += 5; }
       else { p.condition = Math.min(100, p.condition + 8); p.fatigue = Math.max(0, p.fatigue - 5); }
     }
   };
@@ -2398,15 +2461,16 @@ function newMatch(home, away, opts) {
   };
   // 先発：エンジンと同じ選手（自チームは選んだ先発）
   const st = t => (t === pt && opts.myStarters ? opts.myStarters.slice() : getStarters(t));
-  S.teams.home = makeTeam("home", home, st(home));
-  S.teams.away = makeTeam("away", away, st(away));
+  const ord = t => !!(opts.myOrdered && t === pt && opts.myStarters);   // 自チームは戦術タブの配置どおり
+  S.teams.home = makeTeam("home", home, st(home), ord(home));
+  S.teams.away = makeTeam("away", away, st(away), ord(away));
   S.ball.holder = S.teams.home.markers.find(m => m.s.role === "FW") || S.teams.home.markers[10];
   kickoffShape("home");
   placeAll();
   feed(0, "KICK OFF!", "phase");
 }
-function makeTeam(side, team, starters) {
-  const markers = formationSlots(starters, team.formation || "4-4-2").map(({ s, p }, i) => ({ side, s, p, x: .5, y: .5, ov: null, lab: false, seed: i * 1.7 + (side === "away" ? 9 : 0) }));
+function makeTeam(side, team, starters, ordered = false) {
+  const markers = formationSlots(starters, team.formation || "4-4-2", ordered).map(({ s, p }, i) => ({ side, s, p, x: .5, y: .5, ov: null, lab: false, seed: i * 1.7 + (side === "away" ? 9 : 0) }));
   return { side, team, markers };
 }
 const other = side => side === "home" ? "away" : "home";
@@ -3582,7 +3646,7 @@ function playLeague(live) {
     st.round += 1; G.day.played = true;
     persist(); render(); window.scrollTo(0, 0);
   };
-  const opts = { myStarters: T.starters, playerTeam: m };
+  const opts = { myStarters: matchStarters(), myOrdered: true, playerTeam: m };
   if (live) startLive(mine.home, mine.away, { ...opts, isCup: false, title: label }, finish);
   else finish(runMatch(mine.home, mine.away, opts));
 }
@@ -3630,7 +3694,7 @@ function playCup(live) {
   };
   if (mine) {
     const t1 = G.teams[mine.i1], t2 = G.teams[mine.i2];
-    const opts = { isCup: true, myStarters: T.starters, playerTeam: m };
+    const opts = { isCup: true, myStarters: matchStarters(), myOrdered: true, playerTeam: m };
     if (live) startLive(t1, t2, { ...opts, title: `${CUP_NAME} ${G.day.round}` }, finish);
     else finish(runMatch(t1, t2, opts));
   } else finish(null);
@@ -3693,10 +3757,11 @@ function render() {
   let body = "";
   if (T.tab === "home") body = renderHome();
   else if (T.tab === "roster") body = renderRoster();
+  else if (T.tab === "tactics") body = renderTactics();
   else if (T.tab === "table") body = renderTable();
   else if (T.tab === "goals") body = renderGoals();
   else body = renderMenu();
-  const tabs = [["home", "ホーム"], ["roster", "名簿"], ["table", "順位"], ["goals", "記録"], ["menu", "クラブ"]];
+  const tabs = [["home", "ホーム"], ["roster", "名簿"], ["tactics", "戦術"], ["table", "順位"], ["goals", "記録"], ["menu", "クラブ"]];
   $app.innerHTML = header + `<main class="main">${body}</main>` +
     `<nav class="tabs">${tabs.map(([k, l]) => `<button class="${T.tab === k ? "on" : ""}" data-act="tab" data-arg="${k}"><i class="ic ic-${k}"></i>${l}</button>`).join("")}</nav>`;
   renderSheet();
@@ -3868,11 +3933,12 @@ function matchPrep(kind) {
     if (o) opp = { t: o, home: G.cup_teams.indexOf(G.myIdx) % 2 === 0 };
   }
   const inMatch = !!opp;
-  const st = T.starters ? `<span class="chip ok">スタメン選出済み</span>` : `<span class="chip">スタメン: おまかせ</span>`;
+  const tc = myTac();
+  const st = `<span class="chip ok">${m.formation} · ${h((TAC_STYLE[tc.style] || TAC_STYLE.balance).name)} · ライン${h((TAC_LINE[tc.line] || TAC_LINE.mid).name.replace(/（.*）/, ""))}</span>`;
   const oppInfo = inMatch ? (() => {
     const t = opp.t, rk = standings(t.division, t.country).indexOf(t) + 1;
     const avg = Math.round(sum(getStarters(t).map(getOvr)) / 11);
-    const myAvg = Math.round(sum((T.starters || getStarters(m)).map(getOvr)) / 11);
+    const myAvg = Math.round(sum((matchStarters() || getStarters(m)).map(getOvr)) / 11);
     return `<div class="vs">
       <div class="vs-side mine">${crest(m.name, 40)}<small>${opp.home ? "HOME" : "AWAY"}</small><b>${h(m.name)}</b><span>先発平均 ${myAvg}</span></div>
       <div class="vs-x">VS</div>
@@ -3885,7 +3951,7 @@ function matchPrep(kind) {
       ${inMatch ? `<div class="chips">${st}</div>
       <button class="btn primary wide big" data-act="${kind === "cup" ? "cup-play" : "league-play"}" data-arg="live">試合開始（実況）</button>
       <div class="grid3">
-        <button class="act sm" data-act="sheet" data-arg="starters"><b>スタメン</b><small>手動で選ぶ</small></button>
+        <button class="act sm" data-act="tab" data-arg="tactics"><b>戦術</b><small>先発・作戦</small></button>
         <button class="act sm" data-act="sheet" data-arg="opp"><b>相手名簿</b><small>${h(opp.t.name)}</small></button>
         <button class="act sm" data-act="${kind === "cup" ? "cup-play" : "league-play"}" data-arg="quick"><b>スキップ</b><small>結果だけ見る</small></button>
       </div>` : `<button class="btn primary wide" data-act="cup-play" data-arg="quick">試合結果を見る</button>`}
@@ -4265,7 +4331,7 @@ const ACTIONS = {
   "rel-ask"() { topSheet().confirmRelease = true; renderSheet(); },
   "rel-cancel"() { topSheet().confirmRelease = false; renderSheet(); },
   "rel-go"() { const p = topSheet().p, m = me(); m.roster.splice(m.roster.indexOf(p), 1); if (T.starters) T.starters = null; persist(); closeSheet(); toast(`${p.name} との契約を解除しました`); },
-  "set-form"(k) { me().formation = k; T.starters = null; persist(); closeSheet(); toast(`フォーメーションを ${k} に変更しました`); },
+  "set-form"(k) { changeFormation(k); T.starters = null; persist(); closeSheet(); render(); toast(`フォーメーションを ${k} に変更しました`); },
   "st-slot"(i) { const s = topSheet(); s.picked = s.picked.slice(0, Number(i)); renderSheet(); },
   "st-pick"(i) { const s = topSheet(); s.picked.push(me().roster[Number(i)]); renderSheet(); },
   "st-auto"() { T.starters = null; closeSheet(); toast("スタメンをおまかせに戻しました"); },
@@ -4378,6 +4444,141 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && T.sheets.l
   render();
   initCloud();
 })();
+
+// ===== 戦術タブ（フォーメーション・選手配置・攻撃スタイル・守備ライン・キャプテン・キッカー） =====
+// 自チームの設定は me().tactics に保存する（選手は名前で持つ）。
+//   lineup: フォーメーションの各ポジション（slotsFor の順）に入る選手の名前 11人分
+//   style / line: 攻撃スタイル・守備ライン（TAC_STYLE / TAC_LINE）
+//   captain / ck / fk / pk: 指名した選手の名前（空ならおまかせ）
+
+const ROLE_KEY = {
+  GK: p => p.reflexes * 1.5 + p.handling,
+  DF: p => p.tackling + p.marking + p.strength * .5,
+  MF: p => p.passing + p.vision + p.stamina * .5,
+  FW: p => p.finishing + p.acceleration + p.speed * .5,
+};
+const roleFit = (p, role) => (p.pos === role ? 1000 : 0) + (ROLE_KEY[role] ? ROLE_KEY[role](p) : getOvr(p));
+const myTac = () => { const m = me(); m.tactics = m.tactics || { style: "balance", line: "mid" }; return m.tactics; };
+const usable = p => p && !p.retired && !(p.injury_days > 0);
+
+// 今の設定から11人を並べる（けが人や移籍でいなくなった選手は、その位置に合う選手で自動的に埋める）
+function myLineup() {
+  const m = me(), tac = myTac(), slots = slotsFor(m.formation || "4-4-2");
+  const avail = m.roster.filter(usable);
+  const used = new Set(), res = [], auto = [];
+  slots.forEach((s, i) => {
+    const n = (tac.lineup || [])[i];
+    const p = n ? avail.find(q => q.name === n && !used.has(q)) : null;
+    res[i] = p || null; if (p) used.add(p);
+  });
+  slots.forEach((s, i) => {
+    if (res[i]) return;
+    const c = avail.filter(p => !used.has(p)).sort((a, b) => roleFit(b, s.role) - roleFit(a, s.role))[0];
+    res[i] = c || null; if (c) { used.add(c); if ((tac.lineup || [])[i]) auto.push(i); }
+  });
+  return { players: res, slots, auto };
+}
+// 試合で使う先発（並び順＝ポジション順）
+function matchStarters() {
+  const { players } = myLineup();
+  return players.every(Boolean) ? players : null;
+}
+const saveLineup = players => { myTac().lineup = players.map(p => (p ? p.name : null)); };
+function autoLineup() {
+  const m = me();
+  const st = getStarters(m);
+  saveLineup(formationSlots(st, m.formation || "4-4-2").map(x => x.p));
+}
+// フォーメーションを変えるときは、今の先発メンバーをなるべく残して新しい形に並べ直す
+function changeFormation(k) {
+  const m = me(); const cur = myLineup().players.filter(Boolean);
+  m.formation = k;
+  saveLineup(formationSlots(cur, k).map(x => x.p));
+}
+
+function renderTactics() {
+  const m = me(), tac = myTac();
+  const { players, slots, auto } = myLineup();
+  const inXI = new Set(players.filter(Boolean));
+  const avg = players.filter(Boolean).length ? Math.round(sum(players.filter(Boolean).map(getOvr)) / players.filter(Boolean).length) : 0;
+  // ピッチ（上が相手ゴール）
+  const board = slots.map((s, i) => {
+    const p = players[i];
+    const top = Math.max(6, Math.min(92, (0.95 - s.lx * 1.25) * 100)), left = Math.max(9, Math.min(91, s.ly * 100));
+    const off = p && p.pos !== s.role;
+    const cond = p ? Math.max(0, Math.min(100, p.condition)) : 0;
+    return `<button class="tslot ${off ? "off" : ""} ${auto.includes(i) ? "auto" : ""}" style="top:${top}%;left:${left}%" data-act="tac-slot" data-arg="${i}">
+      <span class="pos pos-${s.role}">${s.role}</span>
+      <b>${p ? h(shortNm(p.name)) : "—"}</b>
+      <small>${p ? `${getOvr(p)}${p.name === tac.captain ? " ©" : ""}` : ""}</small>
+      ${p ? `<i class="tcond ${cond < 50 ? "low" : ""}"><em style="width:${cond}%"></em></i>` : ""}</button>`;
+  }).join("");
+  const bench = sortRoster(m.roster.filter(p => !p.retired && !inXI.has(p)));
+  const st = TAC_STYLE[tac.style] || TAC_STYLE.balance, ln = TAC_LINE[tac.line] || TAC_LINE.mid;
+  const pickRow = (key, label, hint) => {
+    const n = tac[key]; const p = n ? players.find(q => q && q.name === n) : null;
+    return `<button class="tpick" data-act="sheet" data-arg="tacpick:${key}"><span>${label}</span><b>${p ? h(p.name) : n ? `<s>${h(n)}</s> → おまかせ` : "おまかせ"}</b><small>${hint}</small></button>`;
+  };
+  return `<section class="card"><div class="ch-row"><h2 class="ch">フォーメーション<small>先発平均 ${avg}</small></h2></div>
+      <div class="fchips">${Object.keys(FORMATIONS).map(k => `<button class="${m.formation === k ? "on" : ""}" data-act="tac-form" data-arg="${k}">${k}</button>`).join("")}</div>
+      <div class="tboard"><div class="tlines"></div>${board}</div>
+      <p class="muted small">ポジションをタップすると選手を入れ替えられます。${players.some((p, i) => p && p.pos !== slots[i].role) ? `<span class="bad">赤い枠は本来のポジションではない選手です。</span>` : ""}${auto.length ? `<br><span class="bad">けが人などがいたため、点線の位置は自動で入れ替えています。</span>` : ""}</p>
+      <button class="btn ghost wide" data-act="tac-auto">おまかせで並べる</button></section>
+    <section class="card"><h2 class="ch">攻撃スタイル</h2>
+      <div class="seg tseg">${Object.entries(TAC_STYLE).map(([k, v]) => `<button class="${tac.style === k ? "on" : ""}" data-act="tac-style" data-arg="${k}">${v.name}</button>`).join("")}</div>
+      <p class="tdesc">${h(st.desc)}</p>
+      <h2 class="ch">守備ライン・プレス</h2>
+      <div class="seg tseg">${Object.entries(TAC_LINE).map(([k, v]) => `<button class="${tac.line === k ? "on" : ""}" data-act="tac-line" data-arg="${k}">${v.name.replace(/（.*）/, "")}</button>`).join("")}</div>
+      <p class="tdesc">${h(ln.name)}：${h(ln.desc)}</p></section>
+    <section class="card"><h2 class="ch">キャプテン・キッカー<small>先発の選手から選びます</small></h2>
+      <div class="tpicks">
+        ${pickRow("captain", "キャプテン", "統率力が中盤の主導権争いに効く")}
+        ${pickRow("ck", "コーナーキック", "クロス精度")}
+        ${pickRow("fk", "フリーキック", "パス・決定力・冷静さ")}
+        ${pickRow("pk", "PK", "冷静さ・決定力")}
+      </div></section>
+    <section class="card"><h2 class="ch">控え<small>${bench.length}人</small></h2>${rowHead()}<div class="plist">${bench.map(p => playerRow(p, { act: "pdetail-mine", idx: m.roster.indexOf(p) })).join("")}</div></section>`;
+}
+const shortNm = n => { const s = String(n); if (s.includes("・")) return s.split("・").pop(); if (s.includes(" ")) return s.split(" ")[0]; return s; };
+
+// ---- シート：ポジションに入れる選手を選ぶ / キャプテン・キッカーを選ぶ ----
+SHEETS.tacslot = s => {
+  const m = me(), { players, slots } = myLineup(), sl = slots[s.i], cur = players[s.i];
+  const cands = m.roster.filter(p => !p.retired && p !== cur).sort((a, b) => (usable(b) - usable(a)) || roleFit(b, sl.role) - roleFit(a, sl.role));
+  const where = p => { const j = players.indexOf(p); return j >= 0 ? ["xi", `先発${slots[j].role}`] : p.injury_days > 0 ? ["inj", "負傷"] : ["bench", "控え"]; };
+  return { title: `${sl.role} に入れる選手`, body: `${cur ? `<p class="muted small">今：${h(cur.name)}（${cur.pos}・総合${getOvr(cur)}）</p>` : ""}${rowHead()}
+    <div class="plist">${cands.map(p => playerRow(p, { act: usable(p) ? "tac-put" : "", idx: m.roster.indexOf(p), cls: p.pos === sl.role ? "fit" : "", right: `<span class="twhere ${where(p)[0]}">${where(p)[1]}</span>` })).join("")}</div>
+    <p class="muted small">緑の線は本来のポジションが ${sl.role} の選手です。先発の選手を選ぶと位置を入れ替えます。</p>` };
+};
+const PICK_LABEL = { captain: ["キャプテン", p => p.leadership, "統率"], ck: ["コーナーキッカー", p => p.crossing, "クロス"], fk: ["フリーキッカー", p => Math.round(p.passing * .5 + p.finishing * .3 + p.composure * .2), "FK力"], pk: ["PKキッカー", p => Math.round(p.composure * .6 + p.finishing * .4), "PK力"] };
+SHEETS.tacpick = s => {
+  const [label, f, unit] = PICK_LABEL[s.key];
+  const ps = myLineup().players.filter(Boolean).sort((a, b) => f(b) - f(a));
+  const cur = myTac()[s.key];
+  return { title: `${label}を選ぶ`, body: `<button class="btn wide ${!cur ? "primary" : ""}" data-act="tac-pick" data-arg="">おまかせ（試合ごとに一番向いている選手）</button>
+    <div class="plist">${ps.map(p => playerRow(p, { act: "tac-pick", idx: me().roster.indexOf(p), cls: p.name === cur ? "sel" : "", right: `<span class="pcond"><b>${f(p)}</b><small> ${unit}</small></span>` })).join("")}</div>` };
+};
+
+Object.assign(ACTIONS, {
+  "tac-form"(k) { changeFormation(k); T.starters = null; persist(); render(); },
+  "tac-auto"() { autoLineup(); persist(); render(); toast("おまかせで並べました"); },
+  "tac-style"(k) { myTac().style = k; persist(); render(); },
+  "tac-line"(k) { myTac().line = k; persist(); render(); },
+  "tac-slot"(i) { openSheet({ kind: "tacslot", i: Number(i) }); },
+  "tac-put"(ri) {
+    const s = topSheet(), m = me(), p = m.roster[Number(ri)];
+    const { players } = myLineup(); const j = players.indexOf(p), cur = players[s.i];
+    players[s.i] = p; if (j >= 0) players[j] = cur;      // 先発同士なら入れ替え
+    saveLineup(players); persist(); closeSheet(); render();
+  },
+  "tac-pick"(ri) {
+    const s = topSheet(); myTac()[s.key] = ri === "" || ri == null ? null : me().roster[Number(ri)].name;
+    persist(); closeSheet(); render();
+  },
+});
+// シート名に「tacpick:captain」のような引数を付けられるようにする
+const _sheetAct = ACTIONS.sheet;
+ACTIONS.sheet = k => { if (String(k).startsWith("tacpick:")) openSheet({ kind: "tacpick", key: k.split(":")[1] }); else _sheetAct(k); };
 
 </script>
 
