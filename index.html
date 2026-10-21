@@ -6128,7 +6128,7 @@ SHEETS.tacpick = s => {
   const ps = myLineup().players.filter(Boolean).sort((a, b) => f(b) - f(a));
   const cur = myTac()[s.key];
   return { title: `${label}を選ぶ`, body: `<button class="btn wide ${!cur ? "primary" : ""}" data-act="tac-pick" data-arg="">おまかせ（試合ごとに一番向いている選手）</button>
-    <div class="plist">${ps.map(p => playerRow(p, { act: "tac-pick", idx: me().roster.indexOf(p), cls: p.name === cur ? "sel" : "", right: `<span class="pcond"><b>${f(p)}</b><small> ${unit}</small></span>` })).join("")}</div>` };
+    <div class="plist">${ps.map(p => playerRow(p, { act: "tac-pick", idx: me().roster.indexOf(p), ct: false, cls: p.name === cur ? "sel" : "", right: `<span class="pcond"><b>${f(p)}</b><small> ${unit}</small></span>` })).join("")}</div>` };
 };
 
 Object.assign(ACTIONS, {
