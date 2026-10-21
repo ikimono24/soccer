@@ -903,7 +903,14 @@ function uniqueName(nat) {
     const n = fullName(nat);
     if (!USED_NAMES.has(n)) { USED_NAMES.add(n); return n; }
   }
-  return fullName(nat) + randint(2, 99);
+  // 候補が尽きたら、二つの姓を組み合わせた名前にする（数字は付けない）
+  const pool = typeof NAME_POOLS !== "undefined" && NAME_POOLS[nat];
+  if (pool) for (let i = 0; i < 200; i++) {
+    const f = choice(pool.f), l1 = choice(pool.l), l2 = choice(pool.l); if (l1 === l2) continue;
+    const n = nat === "JPN" ? `${l1} ${f}` : nat === "KOR" || nat === "CHN" ? fullName(nat) : `${f}・${l1}＝${l2}`;
+    if (!USED_NAMES.has(n)) { USED_NAMES.add(n); return n; }
+  }
+  const n = fullName(nat); USED_NAMES.add(n); return n;
 }
 function registerNames(teams) { for (const t of teams) for (const p of [...t.roster, ...(t.scout_candidates || [])]) USED_NAMES.add(p.name); }
 let _tpl = null;
@@ -2991,6 +2998,7 @@ function seasonRollover(y) {
   }
   sonsArrive(logs); worldEvents(logs); natPoolRollover();
   G.mgrOffers = null; G.natOffers = null;
+  compactHistory(); refreshNames();
   if (mine.academy && mine.academy.length) { for (const p of mine.academy) academyPass(p); mine.academy = []; }
   G.cup_teams = G.next_cup && G.next_cup.length ? G.next_cup : cupQualifiers(true);
   G.next_cup = null;
@@ -4261,7 +4269,10 @@ async function loadCloudCrests() {
 const LS_KEY = "soccer_m_save_v1";
 function persist() {
   if (!G) return;
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ savedAt: Date.now(), G: encodeSave(G) })); } catch (e) { /* 保存できない環境 */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ savedAt: Date.now(), G: encodeSave(G) })); T.saveFail = false; }
+  catch (e) {   // 容量不足などで保存できなかった
+    if (!T.saveFail) { T.saveFail = true; setTimeout(() => toast("⚠️ この端末への保存に失敗しました（容量不足の可能性）。クラブタブの「ファイルに書き出す」でバックアップしてください", "bad"), 50); }
+  }
 }
 let _localCache = null;
 function readLocal() {
@@ -4973,7 +4984,7 @@ function renderHistory() {
   const rows = (L ? L[st] : []).map(([n, t, g]) => ({ name: n, team: t, goals: g, mine: t === rec.club }));
   const table = key !== "cup" && L ? standingsTable(L.table.map(([n, w, d, l, gf, ga, pts]) => ({ name: n, mine: n === rec.club, p: w + d + l, pts, w, d, l, gf, ga }))) : "";
   return seasons + myCard + champs + `<h3 class="sh">リーグ別の記録</h3>` + keyChips +
-    (table ? `<details class="fold" open><summary>最終順位表</summary>${table}</details>` : "") +
+    (table ? `<details class="fold" open><summary>最終順位表${rec.c ? "（上位3クラブのみ）" : ""}</summary>${table}</details>` : "") + (rec.c ? `<p class="muted small">${HIST_KEEP}シーズンより前の記録は、セーブの容量を抑えるため上位3つだけ残しています。</p>` : "") +
     `<div class="ch-row"><h3 class="sh">${st === "goals" ? "得点王" : "アシスト王"}</h3>${statSeg()}</div>${scorerList(rows, st === "goals" ? "点" : "A")}`;
 }
 
@@ -6124,7 +6135,8 @@ function natFakeName(nat) {
   const list = _natSur[nat];
   if (!list || !list.length) return null;
   for (let i = 0; i < 60; i++) { const n = choice("ABCDEFGHIJKLMNOPRSTVZ") + "・" + choice(list); if (!USED_NAMES.has(n)) { USED_NAMES.add(n); return n; } }
-  const n = choice(list) + randint(2, 99); USED_NAMES.add(n); return n;
+  for (let i = 0; i < 100; i++) { const n = choice("ABCDEFGHIJKLMNOPRSTVZ") + "・" + choice("ABCDEFGHIJKLMNOPRSTVZ") + "・" + choice(list); if (!USED_NAMES.has(n)) { USED_NAMES.add(n); return n; } }
+  const n = choice("ABCDEFGHIJKLMNOPRSTVZ") + "・" + choice(list); USED_NAMES.add(n); return n;
 }
 const fixNatName = (q, nat) => { const code = NAT_CODE[nat] || nat; if (!NAME_POOLS[code]) { const n = natFakeName(nat); if (n) q.name = n; } q.nat = nat; };
 const natPool = () => (G.natPool = G.natPool || buildNatPool());
@@ -6319,6 +6331,10 @@ function careerDaily() {
 }
 // ホームに出すお知らせ（ユース候補）
 function careerNotice() {
+  if (T.saveFail) return `<section class="card notice"><h2 class="ch bad">⚠️ 保存に失敗しています</h2><p class="small">この端末への自動保存ができていません（容量不足の可能性）。このまま閉じると、最後に保存できた時点まで戻ります。クラブタブの「ファイルに書き出す」でバックアップしてください。</p></section>` + careerNotice2();
+  return careerNotice2();
+}
+function careerNotice2() {
   const c = me().academy || [];
   return c.length ? `<section class="card notice"><h2 class="ch">🎓 ユース昇格候補（${c.length}人）</h2><p class="muted small">アカデミーから、トップチームに上げたい若手の報告が届いています。</p><button class="btn primary wide" data-act="sheet" data-arg="academy">候補を見る</button></section>` : "";
 }
@@ -6731,6 +6747,30 @@ function ctBadge(p) {
 function perRows(p) {
   const mine = me().roster.includes(p);
   return `<dt>性格</dt><dd>${perOf(p)}<small class="muted">（${PER(p).desc}）</small></dd>${mine && p.ct != null ? `<dt>契約</dt><dd>${ctLeft(p) <= 1 ? "今季まで" : `残り${ctLeft(p)}シーズン`} · 週給 ${yen(p.wage || baseWage(p))}</dd><dt>満足度</dt><dd>${Math.round(p.sat ?? 70)}${p.req ? "（移籍を希望）" : ""}</dd>` : ""}`;
+}
+
+// =====================================================================
+// 長く遊んでも破綻しないように：古い記録の圧縮・名前の使い回し・保存失敗の警告
+// =====================================================================
+const HIST_KEEP = 30;   // 詳しい記録を残すシーズン数（それより古いシーズンは上位3つだけ残す）
+function compactHistory() {
+  const H = G.history || [];
+  for (let i = 0; i < H.length - HIST_KEEP; i++) {
+    const r = H[i]; if (r.c) continue;
+    for (const k in r.leagues || {}) { const L = r.leagues[k]; r.leagues[k] = { table: (L.table || []).slice(0, 3), goals: (L.goals || []).slice(0, 3), assists: (L.assists || []).slice(0, 3) }; }
+    if (r.cup) r.cup = { winner: r.cup.winner, goals: (r.cup.goals || []).slice(0, 3), assists: (r.cup.assists || []).slice(0, 3) };
+    r.c = 1;
+  }
+}
+// 今いる選手の名前だけを「使用中」にする（引退した選手の名前はまた使えるように）。数字の付いた名前は付け直す
+function refreshNames() {
+  USED_NAMES.clear();
+  const all = [...G.teams.flatMap(t => [...t.roster, ...(t.scout_candidates || []), ...(t.academy || [])]), ...(G.natPool || []), ...(G.freeAgents || [])];
+  for (const p of all) if (!/\d/.test(p.name)) USED_NAMES.add(p.name);
+  for (const p of all) if (/\d/.test(p.name)) {
+    const code = NAT_CODE[p.nat] || p.nat;
+    p.name = NAME_POOLS[code] ? uniqueName(code) : (natFakeName(p.nat) || uniqueName(code));
+  }
 }
 
 </script>
