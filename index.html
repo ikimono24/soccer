@@ -701,18 +701,78 @@ const PLAYER_SKILLS = {
   "【極】ファンタジスタ": "異次元のテクニック。中盤支配と突破力が極限まで高まる",
   "【極】最後の砦": "一人で守備を完結させる。相手の攻撃をほぼ確実に阻止する",
   "【極】神の手": "不可能を可能にするセーブ。シュート阻止率が劇的に上昇する（GK専用）",
-  "【極】皇帝": "全選手の能力を引き出す。チーム全体のスタミナ低下を無効化し支配力を爆増させる"
+  "【極】皇帝": "全選手の能力を引き出す。チーム全体のスタミナ低下を無効化し支配力を爆増させる",
+  "エアリアル": "空中戦にめっぽう強い。CK・クロス・FKでの競り合いで大きく有利",
+  "大砲": "遠目からの強烈なシュート。ミドルシュートが決まりやすく、打つ回数も増える",
+  "クロサー": "精度の高いクロス。サイドからのクロスとCKが味方に合いやすい",
+  "フリーキッカー": "セットプレーの名手。直接FKを狙う回数が増えて決まりやすく、CKの精度も高い",
+  "フォックス": "ゴール前の嗅覚。こぼれ球に誰よりも早く詰めて押し込む",
+  "ハードワーカー": "献身的な守備。プレスでボールを奪い返す力がチームに加わる",
+  "クラッチ": "勝負どころで決める。75分以降のシュートが決まりやすい",
+  "フォートレス": "リードを守り切る。後半リードしているとき、相手の猛攻を受け止める",
+  "PKストッパー": "駆け引きの名手。PKとゴール前の1対1を止めやすい（GK専用）",
+  "スイーパーキーパー": "広い守備範囲。前に出てスルーパスやクロスを防ぐ（GK専用）",
+  "指導者": "若手の手本。チームの21歳以下の選手の練習の伸びが上がる（ベテラン専用）",
+  "【極】エアフォース": "空の支配者。攻守の空中戦でほとんど負けない",
+  "【極】司令塔": "試合を操る。スルーパスとパス交換がほぼ通り、チャンスが大きく増える",
+  "【極】ビッグゲーム": "大舞台で輝く。格上の相手やカップ戦で、チーム全体の力が上がる"
 };
 const SKILL_POOL = {
-  GK: ["守護神", "鉄人", "心臓", "バンディエラ"],
-  DF: ["ディフェンスリーダー", "鉄壁", "鉄人", "心臓", "バンディエラ"],
-  MF: ["ナンバー10", "スピードスター", "鉄人", "心臓", "スーパーサブ", "バンディエラ"],
-  FW: ["エースストライカー", "スピードスター", "鉄人", "心臓", "スーパーサブ", "バンディエラ"],
+  GK: ["守護神", "鉄人", "心臓", "バンディエラ", "PKストッパー", "スイーパーキーパー", "指導者"],
+  DF: ["ディフェンスリーダー", "鉄壁", "鉄人", "心臓", "バンディエラ", "エアリアル", "クロサー", "フォートレス", "指導者"],
+  MF: ["ナンバー10", "スピードスター", "鉄人", "心臓", "スーパーサブ", "バンディエラ", "大砲", "クロサー", "フリーキッカー", "ハードワーカー", "クラッチ", "フォートレス", "指導者"],
+  FW: ["エースストライカー", "スピードスター", "鉄人", "心臓", "スーパーサブ", "バンディエラ", "エアリアル", "大砲", "フリーキッカー", "フォックス", "クラッチ", "指導者"],
 };
 const RARE_POOL = {
-  GK: ["【極】神の手", "【極】皇帝"], DF: ["【極】最後の砦", "【極】皇帝"],
-  MF: ["【極】ファンタジスタ", "【極】皇帝"], FW: ["【極】怪物", "【極】皇帝"],
+  GK: ["【極】神の手", "【極】皇帝", "【極】ビッグゲーム"], DF: ["【極】最後の砦", "【極】皇帝", "【極】エアフォース", "【極】ビッグゲーム"],
+  MF: ["【極】ファンタジスタ", "【極】皇帝", "【極】司令塔", "【極】ビッグゲーム"], FW: ["【極】怪物", "【極】皇帝", "【極】エアフォース", "【極】ビッグゲーム"],
 };
+// スキルごとに関係する能力（高い選手ほどそのスキルが選ばれやすい）
+const _v = (p, k) => parseInt(p[k]) || 50;
+const _ht = p => Math.max(0, Math.min(100, ((parseInt(p.height) || 181) - 160) * 2));   // 身長を0〜100に（185cm→50、195cm→70）
+const SKILL_FIT = {
+  "エースストライカー": p => _v(p, "finishing") * .7 + _v(p, "composure") * .3,
+  "ナンバー10": p => _v(p, "vision") * .6 + _v(p, "passing") * .4,
+  "ディフェンスリーダー": p => _v(p, "leadership") * .5 + _v(p, "marking") * .3 + _v(p, "positioning") * .2,
+  "鉄壁": p => _v(p, "strength") * .4 + _v(p, "marking") * .3 + _v(p, "tackling") * .3,
+  "スピードスター": p => _v(p, "speed") * .5 + _v(p, "acceleration") * .5,
+  "鉄人": p => _v(p, "strength") * .5 + _v(p, "stamina") * .5,
+  "心臓": p => _v(p, "stamina") * .7 + _v(p, "workrate") * .3,
+  "スーパーサブ": p => _v(p, "acceleration") * .5 + _v(p, "finishing") * .3 + _v(p, "dribbling") * .2,
+  "バンディエラ": p => _v(p, "leadership"),
+  "守護神": p => _v(p, "reflexes") * .6 + _v(p, "positioning") * .4,
+  "エアリアル": p => _v(p, "jumping") * .6 + _ht(p) * .4,
+  "大砲": p => _v(p, "finishing") * .5 + _v(p, "strength") * .5,
+  "クロサー": p => _v(p, "crossing"),
+  "フリーキッカー": p => _v(p, "passing") * .5 + _v(p, "composure") * .3 + _v(p, "crossing") * .2,
+  "フォックス": p => _v(p, "positioning") * .6 + _v(p, "finishing") * .4,
+  "ハードワーカー": p => _v(p, "workrate") * .6 + _v(p, "stamina") * .4,
+  "クラッチ": p => _v(p, "composure") * .7 + _v(p, "finishing") * .3,
+  "フォートレス": p => _v(p, "positioning") * .5 + _v(p, "tackling") * .3 + _v(p, "leadership") * .2,
+  "PKストッパー": p => _v(p, "reflexes") * .5 + _v(p, "composure") * .5,
+  "スイーパーキーパー": p => _v(p, "speed") * .4 + _v(p, "positioning") * .4 + _v(p, "handling") * .2,
+  "指導者": p => _v(p, "leadership") * .6 + _v(p, "composure") * .4,
+  "【極】怪物": p => _v(p, "finishing") * .7 + _v(p, "strength") * .3,
+  "【極】ファンタジスタ": p => _v(p, "dribbling") * .6 + _v(p, "vision") * .4,
+  "【極】最後の砦": p => _v(p, "marking") * .4 + _v(p, "tackling") * .3 + _v(p, "positioning") * .3,
+  "【極】神の手": p => _v(p, "reflexes") * .7 + _v(p, "handling") * .3,
+  "【極】皇帝": p => _v(p, "leadership") * .6 + _v(p, "passing") * .4,
+  "【極】エアフォース": p => _v(p, "jumping") * .6 + _ht(p) * .4,
+  "【極】司令塔": p => _v(p, "passing") * .5 + _v(p, "vision") * .5,
+  "【極】ビッグゲーム": p => _v(p, "composure") * .6 + _v(p, "leadership") * .4,
+};
+const SKILL_FIT_SPREAD = 4;   // 小さいほど、能力に合ったスキルばかりになる
+// 位置と年齢に合うスキルを、能力に合うものほど選ばれやすく選ぶ（指導者は28歳以上だけ）
+function pickSkill(p, rare = false) {
+  const pool = (rare ? RARE_POOL : SKILL_POOL)[p.pos] || (rare ? RARE_POOL : SKILL_POOL).MF;
+  const ok = pool.filter(s => s !== "指導者" || p.age >= 28);
+  const c = ok.length ? ok : pool;
+  const fits = c.map(s => SKILL_FIT[s] ? SKILL_FIT[s](p) : 60), top = Math.max(...fits);
+  const w = fits.map(f => Math.exp((f - top) / SKILL_FIT_SPREAD));
+  let r = rnd() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < c.length; i++) { r -= w[i]; if (r <= 0) return c[i]; }
+  return c[c.length - 1];
+}
 const POS_ORDER = { GK: 0, DF: 1, MF: 2, FW: 3 };
 
 // ---------- 乱数ヘルパー（Python random 互換の挙動） ----------
@@ -749,7 +809,8 @@ function cupDates(y) {
 // ---------- 能力評価 ----------
 // 総合値：ポジションごとの重み付き平均（FC26 の実在選手約5,500人の総合値に合わせて求めた重み。目盛りもFCとほぼ同じ）
 // 元の式（18能力の合計÷12）は万能型のサイドバックやボランチが高く出すぎ、GKだけ低く出ていた
-const OVR_W = {"GK": {"reflexes": 0.4042, "handling": 0.3206, "positioning": 0.2369, "leadership": 0.0537}, "DF": {"speed": 0.0347, "strength": 0.0162, "stamina": 0.0531, "jumping": 0.0358, "passing": 0.1265, "dribbling": 0.0452, "tackling": 0.2953, "marking": 0.1698, "workrate": 0.0923, "leadership": 0.163}, "MF": {"speed": 0.0389, "stamina": 0.0679, "passing": 0.2687, "dribbling": 0.2136, "crossing": 0.0533, "workrate": 0.0847, "leadership": 0.2891}, "FW": {"speed": 0.0596, "strength": 0.051, "finishing": 0.1835, "passing": 0.1298, "dribbling": 0.202, "positioning": 0.174, "workrate": 0.0502, "leadership": 0.1632}};
+// 総合値の重み（統率力は試合での効き方に合わせて比重を下げた）
+const OVR_W = {"GK": {"reflexes": 0.4042, "handling": 0.3206, "positioning": 0.2369, "leadership": 0.0537}, "DF": {"speed": 0.0388, "strength": 0.0181, "stamina": 0.0594, "jumping": 0.04, "passing": 0.1415, "dribbling": 0.0506, "tackling": 0.3303, "marking": 0.1899, "workrate": 0.1032, "leadership": 0.06}, "MF": {"speed": 0.0501, "stamina": 0.0874, "passing": 0.346, "dribbling": 0.275, "crossing": 0.0686, "workrate": 0.1091, "leadership": 0.08}, "FW": {"speed": 0.0668, "strength": 0.0572, "finishing": 0.2058, "passing": 0.1456, "dribbling": 0.2265, "positioning": 0.1951, "workrate": 0.0563, "leadership": 0.06}};
 function getOvr(p) {
   try {
     const w = OVR_W[p.pos] || OVR_W.MF;
@@ -878,8 +939,8 @@ function createPlayer({ age = null, pos = null, quality = "normal", fixed = null
   p.fatigue = parseInt(p.fatigue) || 0;
 
   const x = rnd();
-  if (x < 0.005) { p.skill = choice(RARE_POOL[p.pos] || RARE_POOL.MF); p.is_rare = true; }
-  else if (x < 0.055) { p.skill = choice(SKILL_POOL[p.pos] || SKILL_POOL.MF); p.is_rare = false; }
+  if (x < 0.005) { p.skill = pickSkill(p, true); p.is_rare = true; }
+  else if (x < 0.055) { p.skill = pickSkill(p); p.is_rare = false; }
   else { p.skill = null; p.is_rare = false; }
   USED_NAMES.add(p.name);
   return p;
@@ -985,8 +1046,8 @@ const LEGENDS = [
   ["platini", "ミシェル・プラティニ", "MF", "フランス", 179, 28, 92, "AM", { finishing: 4, passing: 2 }, "ナンバー10"],
   ["zico", "ジーコ", "MF", "ブラジル", 172, 26, 91, "AM", { finishing: 4 }, "ナンバー10"],
   ["yashin", "レフ・ヤシン", "GK", "ロシア", 189, 28, 92, "GK", { reflexes: 4 }, "【極】神の手"],
-  ["zoff", "ディノ・ゾフ", "GK", "イタリア", 182, 30, 90, "GK", { positioning: 4, leadership: 6 }, "守護神"],
-  ["schmeichel", "ペーター・シュマイケル", "GK", "デンマーク", 191, 28, 91, "GK", { reflexes: 4, leadership: 8 }, "守護神"],
+  ["zoff", "ディノ・ゾフ", "GK", "イタリア", 182, 30, 90, "GK", { positioning: 4, leadership: 6 }, "指導者"],
+  ["schmeichel", "ペーター・シュマイケル", "GK", "デンマーク", 191, 28, 91, "GK", { reflexes: 4, leadership: 8 }, "スイーパーキーパー"],
   ["buffon", "ジャンルイジ・ブッフォン", "GK", "イタリア", 192, 28, 92, "GK", { reflexes: 3, positioning: 3 }, "【極】神の手"],
   ["kahn", "オリバー・カーン", "GK", "ドイツ", 188, 30, 91, "GK", { reflexes: 4, leadership: 10 }, "守護神"],
   ["casillas", "イケル・カシージャス", "GK", "スペイン", 185, 27, 90, "GK", { reflexes: 6, handling: -4 }, "守護神"],
@@ -996,31 +1057,31 @@ const LEGENDS = [
   ["puyol", "カルレス・プジョル", "DF", "スペイン", 178, 28, 89, "CB", { workrate: 10, leadership: 8 }, "ディフェンスリーダー"],
   ["nesta", "アレッサンドロ・ネスタ", "DF", "イタリア", 187, 27, 91, "CB", { tackling: 4, composure: 4 }, "鉄壁"],
   ["cafu", "カフー", "DF", "ブラジル", 176, 28, 90, "FB", { stamina: 6, workrate: 6 }, "鉄人"],
-  ["rcarlos", "ロベルト・カルロス", "DF", "ブラジル", 168, 27, 90, "FB", { speed: 4, finishing: 14, strength: 8 }, "スピードスター"],
+  ["rcarlos", "ロベルト・カルロス", "DF", "ブラジル", 168, 27, 90, "FB", { speed: 4, finishing: 14, strength: 8 }, "大砲"],
   ["lahm", "フィリップ・ラーム", "DF", "ドイツ", 170, 28, 89, "FB", { positioning: 6, composure: 6 }, "心臓"],
   ["ferdinand", "リオ・ファーディナンド", "DF", "イングランド", 189, 28, 89, "CB", { speed: 8, passing: 4 }, "鉄壁"],
   ["terry", "ジョン・テリー", "DF", "イングランド", 187, 28, 89, "CB", { leadership: 10, speed: -6 }, "ディフェンスリーダー"],
   ["thuram", "リリアン・テュラム", "DF", "フランス", 182, 28, 89, "CB", { speed: 6, strength: 4 }, "鉄壁"],
   ["desailly", "マルセル・デサイー", "DF", "フランス", 188, 28, 89, "CB", { strength: 6 }, "鉄人"],
-  ["vidic", "ネマニャ・ヴィディッチ", "DF", "セルビア", 189, 28, 88, "CB", { jumping: 4, strength: 4 }, "鉄壁"],
+  ["vidic", "ネマニャ・ヴィディッチ", "DF", "セルビア", 189, 28, 88, "CB", { jumping: 4, strength: 4 }, "エアリアル"],
   ["matthaus", "ロタール・マテウス", "MF", "ドイツ", 174, 28, 92, "CM", { tackling: 10, finishing: 4, leadership: 10 }, "【極】皇帝"],
-  ["pirlo", "アンドレア・ピルロ", "MF", "イタリア", 177, 28, 90, "CM", { passing: 7, vision: 6, speed: -12 }, "ナンバー10"],
+  ["pirlo", "アンドレア・ピルロ", "MF", "イタリア", 177, 28, 90, "CM", { passing: 7, vision: 6, speed: -12 }, "【極】司令塔"],
   ["xavi", "シャビ", "MF", "スペイン", 170, 28, 91, "CM", { passing: 7, vision: 5, composure: 6 }, "ナンバー10"],
   ["iniesta", "アンドレス・イニエスタ", "MF", "スペイン", 171, 27, 92, "AM", { dribbling: 2, composure: 4 }, "【極】ファンタジスタ"],
   ["gerrard", "スティーヴン・ジェラード", "MF", "イングランド", 183, 26, 90, "CM", { finishing: 6, strength: 6, leadership: 8 }, "バンディエラ"],
-  ["lampard", "フランク・ランパード", "MF", "イングランド", 184, 27, 90, "CM", { finishing: 10, positioning: 6 }, "鉄人"],
+  ["lampard", "フランク・ランパード", "MF", "イングランド", 184, 27, 90, "CM", { finishing: 10, positioning: 6 }, "大砲"],
   ["scholes", "ポール・スコールズ", "MF", "イングランド", 170, 28, 89, "CM", { passing: 6, finishing: 4 }, "バンディエラ"],
-  ["vieira", "パトリック・ヴィエラ", "MF", "フランス", 192, 27, 90, "DM", { dribbling: 6 }, "鉄人"],
+  ["vieira", "パトリック・ヴィエラ", "MF", "フランス", 192, 27, 90, "DM", { dribbling: 6 }, "ハードワーカー"],
   ["keane", "ロイ・キーン", "MF", "アイルランド", 178, 28, 89, "DM", { leadership: 10, workrate: 6 }, "心臓"],
   ["seedorf", "クラレンス・セードルフ", "MF", "オランダ", 176, 28, 88, "CM", { strength: 8, finishing: 4 }, "鉄人"],
   ["kaka", "カカ", "MF", "ブラジル", 186, 25, 91, "AM", { speed: 8, finishing: 4 }, "スピードスター"],
   ["ronaldinho", "ロナウジーニョ", "MF", "ブラジル", 181, 26, 92, "W", { dribbling: 6, vision: 8, passing: 6 }, "【極】ファンタジスタ"],
   ["figo", "ルイス・フィーゴ", "MF", "ポルトガル", 180, 28, 90, "W", { crossing: 6, passing: 4 }, "ナンバー10"],
-  ["beckham", "デイヴィッド・ベッカム", "MF", "イングランド", 180, 27, 89, "W", { crossing: 12, passing: 8, speed: -10, dribbling: -10, stamina: 8 }, "ナンバー10"],
+  ["beckham", "デイヴィッド・ベッカム", "MF", "イングランド", 180, 27, 89, "W", { crossing: 12, passing: 8, speed: -10, dribbling: -10, stamina: 8 }, "フリーキッカー"],
   ["giggs", "ライアン・ギグス", "MF", "ウェールズ", 179, 26, 89, "W", { dribbling: 4 }, "バンディエラ"],
   ["nakata", "中田英寿", "MF", "日本", 175, 26, 87, "CM", { strength: 8, vision: 6 }, "ナンバー10"],
-  ["parkjisung", "朴智星", "MF", "韓国", 175, 28, 85, "CM", { stamina: 10, workrate: 12, tackling: 8 }, "心臓"],
-  ["nakamura", "中村俊輔", "MF", "日本", 178, 28, 86, "AM", { crossing: 12, passing: 6, speed: -10 }, "ナンバー10"],
+  ["parkjisung", "朴智星", "MF", "韓国", 175, 28, 85, "CM", { stamina: 10, workrate: 12, tackling: 8 }, "ハードワーカー"],
+  ["nakamura", "中村俊輔", "MF", "日本", 178, 28, 86, "AM", { crossing: 12, passing: 6, speed: -10 }, "フリーキッカー"],
   ["henry", "ティエリ・アンリ", "FW", "フランス", 188, 27, 93, "ST", { speed: 6, acceleration: 4 }, "スピードスター"],
   ["baggio", "ロベルト・バッジョ", "FW", "イタリア", 174, 27, 92, "AM", { finishing: 6 }, "【極】ファンタジスタ"],
   ["shearer", "アラン・シアラー", "FW", "イングランド", 183, 26, 90, "TS", { finishing: 4 }, "エースストライカー"],
@@ -1031,7 +1092,7 @@ const LEGENDS = [
   ["best", "ジョージ・ベスト", "FW", "北アイルランド", 175, 25, 91, "W", { dribbling: 6, finishing: 6 }, "スピードスター"],
   ["totti", "フランチェスコ・トッティ", "FW", "イタリア", 180, 28, 90, "AM", { finishing: 6, speed: -6 }, "バンディエラ"],
   ["raul", "ラウール", "FW", "スペイン", 180, 27, 89, "ST", { positioning: 4, composure: 4 }, "バンディエラ"],
-  ["drogba", "ディディエ・ドログバ", "FW", "コートジボワール", 189, 28, 90, "TS", { strength: 4, speed: 6 }, "心臓"],
+  ["drogba", "ディディエ・ドログバ", "FW", "コートジボワール", 189, 28, 90, "TS", { strength: 4, speed: 6 }, "【極】ビッグゲーム"],
   ["etoo", "サミュエル・エトー", "FW", "カメルーン", 180, 27, 90, "ST", { speed: 4, workrate: 8 }, "スピードスター"],
   ["cantona", "エリック・カントナ", "FW", "フランス", 188, 28, 89, "TS", { passing: 10, vision: 10, leadership: 8 }, "ナンバー10"],
   ["rooney", "ウェイン・ルーニー", "FW", "イングランド", 176, 25, 90, "ST", { workrate: 10, strength: 6 }, "心臓"],
@@ -1039,7 +1100,7 @@ const LEGENDS = [
   ["kamamoto", "釜本邦茂", "FW", "日本", 181, 26, 86, "TS", { finishing: 4 }, "エースストライカー"],
   ["chabumkun", "車範根", "FW", "韓国", 179, 27, 87, "ST", { strength: 6, stamina: 6 }, "鉄人"],
   ["ibrahimovic", "ズラタン・イブラヒモヴィッチ", "FW", "スウェーデン", 195, 28, 91, "TS", { dribbling: 10, composure: 4 }, "エースストライカー"],
-  ["klose", "ミロスラフ・クローゼ", "FW", "ドイツ", 182, 28, 88, "TS", { positioning: 6, jumping: 4 }, "エースストライカー"],
+  ["klose", "ミロスラフ・クローゼ", "FW", "ドイツ", 182, 28, 88, "TS", { positioning: 6, jumping: 4 }, "エアリアル"],
   // ---- 追加分 ----
   ["banks", "ゴードン・バンクス", "GK", "イングランド", 185, 29, 90, "GK", { reflexes: 4 }, "守護神"],
   ["cech", "ペトル・チェフ", "GK", "チェコ", 196, 27, 90, "GK", { handling: 4, positioning: 4 }, "守護神"],
@@ -1047,17 +1108,17 @@ const LEGENDS = [
   ["maier", "ゼップ・マイヤー", "GK", "ドイツ", 183, 29, 89, "GK", { reflexes: 4 }, "守護神"],
   ["chilavert", "ホセ・ルイス・チラベルト", "GK", "パラグアイ", 189, 30, 87, "GK", { passing: 20, finishing: 40, leadership: 10 }, "バンディエラ"],
   ["barthez", "ファビアン・バルテズ", "GK", "フランス", 183, 29, 87, "GK", { reflexes: 4, passing: 8 }, "心臓"],
-  ["kawaguchi", "川口能活", "GK", "日本", 179, 28, 83, "GK", { reflexes: 6, leadership: 6 }, "守護神"],
+  ["kawaguchi", "川口能活", "GK", "日本", 179, 28, 83, "GK", { reflexes: 6, leadership: 6 }, "PKストッパー"],
   ["narazaki", "楢崎正剛", "GK", "日本", 187, 29, 83, "GK", { positioning: 4 }, "鉄人"],
   ["moore", "ボビー・ムーア", "DF", "イングランド", 188, 27, 91, "CB", { passing: 8, leadership: 10, speed: -6 }, "ディフェンスリーダー"],
   ["facchetti", "ジャチント・ファッケッティ", "DF", "イタリア", 191, 27, 89, "FB", { finishing: 10, jumping: 8 }, "鉄人"],
   ["scirea", "ガエターノ・シレア", "DF", "イタリア", 178, 28, 90, "CB", { passing: 8, composure: 6 }, "ディフェンスリーダー"],
   ["calberto", "カルロス・アルベルト", "DF", "ブラジル", 178, 26, 89, "FB", { leadership: 10, finishing: 8 }, "バンディエラ"],
-  ["koeman", "ロナルド・クーマン", "DF", "オランダ", 182, 28, 89, "CB", { passing: 12, finishing: 14, speed: -10 }, "ナンバー10"],
+  ["koeman", "ロナルド・クーマン", "DF", "オランダ", 182, 28, 89, "CB", { passing: 12, finishing: 14, speed: -10 }, "大砲"],
   ["krol", "ルート・クロル", "DF", "オランダ", 184, 27, 88, "CB", { passing: 8, speed: 6 }, "鉄壁"],
   ["zanetti", "ハビエル・サネッティ", "DF", "アルゼンチン", 178, 28, 89, "FB", { stamina: 6, leadership: 10 }, "鉄人"],
   ["acole", "アシュリー・コール", "DF", "イングランド", 176, 27, 88, "FB", { tackling: 6, speed: 4 }, "スピードスター"],
-  ["sramos", "セルヒオ・ラモス", "DF", "スペイン", 184, 28, 90, "CB", { jumping: 8, finishing: 10, leadership: 10 }, "心臓"],
+  ["sramos", "セルヒオ・ラモス", "DF", "スペイン", 184, 28, 90, "CB", { jumping: 8, finishing: 10, leadership: 10 }, "クラッチ"],
   ["pique", "ジェラール・ピケ", "DF", "スペイン", 194, 27, 88, "CB", { passing: 10, composure: 6 }, "鉄壁"],
   ["lucio", "ルシオ", "DF", "ブラジル", 188, 27, 88, "CB", { dribbling: 10, strength: 4 }, "鉄壁"],
   ["blanc", "ローラン・ブラン", "DF", "フランス", 192, 29, 88, "CB", { passing: 8, finishing: 6 }, "ディフェンスリーダー"],
@@ -1080,7 +1141,7 @@ const LEGENDS = [
   ["laudrup", "ミカエル・ラウドルップ", "MF", "デンマーク", 183, 27, 90, "AM", { vision: 6, passing: 4 }, "【極】ファンタジスタ"],
   ["nedved", "パヴェル・ネドヴェド", "MF", "チェコ", 177, 30, 90, "W", { stamina: 10, finishing: 6, workrate: 10 }, "心臓"],
   ["rivaldo", "リバウド", "MF", "ブラジル", 186, 27, 91, "AM", { finishing: 8, jumping: 8 }, "エースストライカー"],
-  ["riquelme", "フアン・ロマン・リケルメ", "MF", "アルゼンチン", 182, 28, 89, "AM", { passing: 6, vision: 6, speed: -12 }, "【極】ファンタジスタ"],
+  ["riquelme", "フアン・ロマン・リケルメ", "MF", "アルゼンチン", 182, 28, 89, "AM", { passing: 6, vision: 6, speed: -12 }, "【極】司令塔"],
   ["ruicosta", "ルイ・コスタ", "MF", "ポルトガル", 180, 27, 88, "AM", { passing: 6 }, "ナンバー10"],
   ["xalonso", "シャビ・アロンソ", "MF", "スペイン", 183, 28, 88, "CM", { passing: 8, tackling: 6 }, "ナンバー10"],
   ["ballack", "ミヒャエル・バラック", "MF", "ドイツ", 189, 27, 89, "CM", { jumping: 10, finishing: 8 }, "バンディエラ"],
@@ -1091,7 +1152,7 @@ const LEGENDS = [
   ["hagi", "ゲオルゲ・ハジ", "MF", "ルーマニア", 174, 27, 90, "AM", { finishing: 6, passing: 4 }, "【極】ファンタジスタ"],
   ["nanami", "名波浩", "MF", "日本", 177, 27, 83, "CM", { passing: 8, vision: 8 }, "ナンバー10"],
   ["ono", "小野伸二", "MF", "日本", 175, 23, 85, "AM", { passing: 6, composure: 6 }, "【極】ファンタジスタ"],
-  ["endo", "遠藤保仁", "MF", "日本", 178, 29, 84, "CM", { passing: 8, composure: 10 }, "ナンバー10"],
+  ["endo", "遠藤保仁", "MF", "日本", 178, 29, 84, "CM", { passing: 8, composure: 10 }, "フリーキッカー"],
   ["honda", "本田圭佑", "MF", "日本", 182, 26, 85, "AM", { strength: 8, finishing: 8 }, "心臓"],
   ["hasebe", "長谷部誠", "MF", "日本", 180, 29, 83, "DM", { leadership: 10, positioning: 6 }, "バンディエラ"],
   ["puskas", "フェレンツ・プスカシュ", "FW", "ハンガリー", 172, 28, 93, "ST", { finishing: 4, vision: 8 }, "【極】怪物"],
@@ -1112,7 +1173,7 @@ const LEGENDS = [
   ["ribery", "フランク・リベリー", "FW", "フランス", 170, 27, 89, "W", { dribbling: 6, passing: 4 }, "スピードスター"],
   ["vieri", "クリスティアン・ヴィエリ", "FW", "イタリア", 185, 27, 89, "TS", { strength: 4 }, "エースストライカー"],
   ["delpiero", "アレッサンドロ・デル・ピエロ", "FW", "イタリア", 174, 27, 91, "AM", { finishing: 8, composure: 4 }, "バンディエラ"],
-  ["inzaghi", "フィリッポ・インザーギ", "FW", "イタリア", 181, 28, 87, "ST", { positioning: 8, dribbling: -10 }, "エースストライカー"],
+  ["inzaghi", "フィリッポ・インザーギ", "FW", "イタリア", 181, 28, 87, "ST", { positioning: 8, dribbling: -10 }, "フォックス"],
   ["zola", "ジャンフランコ・ゾラ", "FW", "イタリア", 168, 28, 88, "AM", { finishing: 6 }, "ナンバー10"],
   ["crespo", "エルナン・クレスポ", "FW", "アルゼンチン", 184, 27, 88, "TS", { finishing: 4 }, "エースストライカー"],
   ["kempes", "マリオ・ケンペス", "FW", "アルゼンチン", 184, 24, 89, "ST", { strength: 6 }, "エースストライカー"],
@@ -1342,6 +1403,8 @@ const PRES_MAX = 12;
 function driftPrestige(t) { t.pres = Math.max(-8, Math.min(PRES_MAX, Math.round((t.pres || 0) * .8 + randint(-3, 3)))); }
 // 強化合宿：お金を払うと、しばらく練習の伸びが良くなる（施設を上げきったあとの使い道）
 const CAMP = { cost: 30000, weeks: 4, mul: 1.5 };
+
+const AI_TRAIN_COND = 8;   // 他クラブの平日の練習で減る体力（自チームの「軽め」と「通常」の間くらい）
 
 // =====================================================================
 // 5か国・10リーグの世界
@@ -1575,23 +1638,29 @@ function processEvolution(p, { training = false, match = false, seasonEnd = fals
   return rep;
 }
 
+// 個別特訓：年齢で伸び方が変わる。1週間以内に同じ選手をもう一度特訓すると効果が半分
+const INT_AGE = a => a <= 23 ? 1.3 : a <= 29 ? 1 : a <= 32 ? .7 : .5;
+const INT_SKILL = p => .012 + (getOvr(p) >= 80 ? .01 : 0) + (p.age <= 23 ? .005 : 0);   // スキルを覚える確率
+const intRecent = p => !!p.lastInt && (D(G.date) - D(p.lastInt)) / 864e5 < 7;
 function intensiveTraining(p) {
   const logs = [];
+  const half = intRecent(p), hf = half ? .5 : 1;
   p.condition -= 45;
   p.fatigue += 25;
+  p.lastInt = G.date;
   const upCount = randint(1, 3);
   const ups = [];
   const targets = p.pos === "GK" ? [...SKILLS_PHYSICAL, "reflexes", "handling", "positioning"] : FIELD_SKILLS;
   for (let i = 0; i < upCount; i++) {
     const s = choice(targets);
-    const gain = randint(1, 3);
-    if (p[s] < Math.min(99, (p.potential ?? 80) + 2)) { p[s] = Math.min(99, p[s] + gain); ups.push(`${SKJ[s]}+${gain}`); }
+    const x = randint(1, 3) * INT_AGE(p.age) * hf, gain = Math.floor(x) + (rnd() < x % 1 ? 1 : 0);   // 端数は確率で切り上げ
+    if (gain > 0 && p[s] < Math.min(99, (p.potential ?? 80) + 2)) { p[s] = Math.min(99, p[s] + gain); ups.push(`${SKJ[s]}+${gain}`); }
   }
   let gained = false;
-  if (!p.skill && rnd() < 0.05) {
-    const pool = SKILL_POOL[p.pos];
-    if (pool) { p.skill = choice(pool); p.is_rare = false; gained = true; }
+  if (!p.skill && rnd() < INT_SKILL(p) * hf) {
+    if (SKILL_POOL[p.pos]) { p.skill = pickSkill(p); p.is_rare = false; gained = true; }
   }
+  if (half) logs.push(L(`連日の特訓で疲れが残り、効果は半分でした（前回から1週間以内）。`, "bad"));
   logs.push(L(`特訓完了！ ${p.name} は限界を超えた努力を見せました！`, "good"));
   if (ups.length) logs.push(L(`能力上昇: ${ups.join("、")}`, "good"));
   else logs.push(L(`能力は伸びませんでした（才能の限界付近）。`));
@@ -1639,24 +1708,26 @@ function nextFocusSkill(p) {
   return c.length ? c.reduce((a, b) => (p[b] < p[a] ? b : a)) : null;
 }
 // 1日の練習。戻り値はログ
+const MENTOR_MUL = 1.3;   // 指導者がいるときの21歳以下の練習の伸び
 function teamTraining(team, kind) {
   const it = INTENSITY[kind] || INTENSITY.normal;
   const gym = (team.facilities || {}).training || 1, med = (team.facilities || {}).medical || 1;
   const grown = [], hurt = [], maxed = [], logs0 = [];
+  const mentor = team.roster.some(q => q.skill === "指導者" && !q.retired && !(q.injury_days > 0));   // 指導者がいると若手がよく伸びる
   for (const p of team.roster) {
     if (p.retired || p.injury_days > 0) continue;
     const tired = p.condition < 30;
     // ケガ：強度が高いほど、疲れているほど起きやすい（医療施設で軽減）
     let ir = it.inj * (tired ? 2.2 : 1) * (p.skill === "鉄人" ? .3 : 1) * medInjury(med);
     if (rnd() < ir) { p.injury_days = randint(3, kind === "hard" ? 24 : 14); hurt.push(p); }
-    p.condition = Math.max(0, p.condition - it.cond);
+    p.condition = Math.max(0, p.condition - Math.round(it.cond * (p.skill === "鉄人" ? .6 : 1)));   // 鉄人は疲れにくい
     p.fatigue = (p.fatigue || 0) + it.fat;
     if (p.injury_days > 0) continue;
     // 若手レジェンドは全盛期の姿に向かって伸びる（育成方針は使わない）
-    if (p.legend || p.reborn != null) { const r = legendGrowth(p, .1 * it.xp * (tired ? .4 : 1)); if (r) logs0.push(r); continue; }
+    if (p.legend || p.reborn != null) { const r = legendGrowth(p, .1 * it.xp * (tired ? .4 : 1) * (mentor && p.age <= 21 ? MENTOR_MUL : 1)); if (r) logs0.push(r); continue; }
     const s = nextFocusSkill(p);
     if (!s) { maxed.push(p); continue; }
-    const gain = TRAIN_BASE_XP * it.xp * ageXp(p.age) * gymXp(gym) * (team.camp > 0 ? CAMP.mul : 1) * (tired ? .4 : 1) * (.8 + rnd() * .4);
+    const gain = TRAIN_BASE_XP * it.xp * ageXp(p.age) * gymXp(gym) * (team.camp > 0 ? CAMP.mul : 1) * (tired ? .4 : 1) * (.8 + rnd() * .4) * (mentor && p.age <= 21 ? MENTOR_MUL : 1);
     p.txp = (p.txp || 0) + gain;
     while (p.txp >= 100) {
       p.txp -= 100;
@@ -1681,12 +1752,14 @@ function simulateRivalManagement() {
   for (const team of G.teams) {
     if (team === mine) continue;
     const isBig = team.tier === 1;
+    const mentor = team.roster.some(q => q.skill === "指導者" && !q.retired);   // 指導者がいると若手がよく伸びる
+    const mm = p => mentor && p.age <= 21 ? MENTOR_MUL : 1;
     for (const p of team.roster) {
       if (p.retired || (p.injury_days || 0) > 0) continue;
       // 若手レジェンド・転生選手は全盛期に向かって伸びる（自チームの練習に近い速さ）
-      if ((p.legend || p.reborn != null) && p.age <= 25) { legendGrowth(p, REBORN_AI_GROW); continue; }
-      if (p.pk && p.age <= 25) { fictionalGrowth(p, REBORN_AI_GROW * 1.6); continue; }
-      const gc = p.age <= 24 ? 0.05 : p.age <= 29 ? 0.03 : 0.002;
+      if ((p.legend || p.reborn != null) && p.age <= 25) { legendGrowth(p, REBORN_AI_GROW * mm(p)); continue; }
+      if (p.pk && p.age <= 25) { fictionalGrowth(p, REBORN_AI_GROW * 1.6 * mm(p)); continue; }
+      const gc = (p.age <= 24 ? 0.05 : p.age <= 29 ? 0.03 : 0.002) * mm(p);
       if (rnd() < gc) {
         const s = choice(p.pos === "GK" ? SKILLS_ALL : FIELD_SKILLS);
         if (p[s] < Math.min(99, p.potential ?? 75)) p[s] += 1;
@@ -1823,7 +1896,8 @@ function randomEvent(me) {
 
 function getStarters(team) {
   const req = FORMATIONS[team.formation || "4-4-2"];
-  let healthy = team.roster.filter(p => p.injury_days === 0 && !p.retired);
+  let healthy = team.roster.filter(p => p.injury_days === 0 && !p.retired && !(p.susp > 0));
+  if (healthy.length < 11) healthy = team.roster.filter(p => !p.retired && !(p.susp > 0));
   if (healthy.length < 11) healthy = team.roster.filter(p => !p.retired);
   if (!healthy.length) return Array.from({ length: 11 }, () => createPlayer({ age: 20, pos: "MF" }));
   const starters = [];
@@ -1848,7 +1922,8 @@ function getStarters(team) {
 function teamStats(s) {
   return {
     control: sum(s.filter(p => p.pos === "MF" || p.pos === "FW").map(p => p.passing * 0.6 + p.vision * 0.4)),
-    defense: sum(s.filter(p => p.pos === "DF" || p.pos === "MF").map(p => p.tackling * 0.5 + p.positioning * 0.5)),
+    // 守備側の圧力（ボールを持っていないときの主導権争いに使う）：MF・FWの運動量・タックル・位置取り
+    press: sum(s.filter(p => p.pos === "MF" || p.pos === "FW").map(p => p.workrate * 0.5 + p.tackling * 0.3 + p.positioning * 0.2)),
     leadership: Math.max(...s.map(p => p.leadership)),
   };
 }
@@ -1861,20 +1936,57 @@ function teamStats(s) {
 // 画面用に { t: "act", kind, ... } の構造化イベントを出す（verbose のときだけ）。結果の計算は verbose に関係なく同じ。
 
 const TUNE2 = {
-  // 調整済み（node で数千試合）：平均得点 約2.6、引き分け 約18%、格上の勝率は旧エンジンと同程度
-  // シュート数 約8.4／試合、決定率：通常 約26%、スルーパス抜け出し 約40%、ヘディング 約27%、直接FK 約10%、PK 約75%
+  // 調整済み（8000試合）：平均得点 約2.7、ホーム勝 44%・引分 25%・アウェー勝 31%、0-0 約5%
+  // スタッツ（細かいプレー込み）：シュート 約25本・枠内率 約35%・CK 約10・ファウル 約22・警告 約3.5・退場 約0.17／試合
+  // 得点者 FW 66%・MF 28%・DF 5%、アシスト付き 約76%
   midRand: 600,
   cutBase: .06,                 // ビルドアップのパスがカットされる基本確率
   dribRand: 80, dribThr: 28,    // ドリブル突破
   thruRand: 80, thruThr: 44,    // スルーパス
   crossRand: 80, crossThr: 34,  // クロス
-  shotBonus: -25, headBonus: -34, fkBonus: -40, pkBonus: -7,
-  foulRate: .6, pkShare: .36, cornerFromSave: .38, cornerFromBlock: .55, cornerFromClear: .35,
+  shotBonus: -23, headBonus: -25, fkBonus: -34, pkBonus: -4,
+  foulRate: .9, pkShare: .36, cornerFromSave: .5, cornerFromBlock: .65, cornerFromClear: .45,
   // 身長の効果：空中戦（1cmあたり）、ヘディングシュート、GKのリーチ、小柄な選手のドリブル
-  airH: .9, headH: .4, gkH: .35, agiH: .35, agiDiff: .15,
+  airH: .9, headH: .4, agiH: .35, agiDiff: .15,
   possBonus: 40,
+  homeAdv: 35,                  // ホームの有利（中盤の争い）
+  awayPen: 4,                   // アウェイの攻撃は少し通りにくい（全チーム共通）
+  formRand: 80, formAtk: .4, chase: 35, fwPass: .3, thruMF: .3,                 // その日の調子（試合ごとのぶれ。番狂わせの元）
+  rebound: .25,                 // GKがはじいたこぼれ球を押し込みに行く確率
+  soloShot: .7,                 // ドリブル突破から自分で打つとき、アシストなし（個人技）になる確率
+  setDF: 50,                    // セットプレーでDF（主にCB）がターゲットになりやすさ
+  // 実況に出ない細かいプレー（スタッツ用）：1シーンあたりの平均
+  bgShot: .85, bgOn: .2, bgCorner: .42, bgFoul: 2.1,
+  ycRate: .17, redRate: .003, redPen: 45,     // 警告・退場（1人少ないと中盤の争いで不利）
   comboRand: 80, comboThr: 15,  // パス交換（1本ごとのカット判定）
   o2Rand: 80, o2Thr: 65,        // ワンツー                // ボールを持っている側の主導権ボーナス（中盤の争い）
+  // 能力の効き方
+  condK: 400, condFrom: 75,     // 体力：75%を下回ると能力が下がる（50%で約-6%、30%で約-11%）
+  tireK: .0018,                 // 後半の疲れ：スタミナが低いほど、終盤ほど能力が下がる
+  pressK: .6,                   // 守備側のプレス（運動量・タックル）が主導権争いに効く強さ
+  finW: .78, gkW: .55, gkBase: 62,          // シュートの決定力・GKの能力が結果に効く強さ（平均65からの差に掛ける）
+  shotDefW: .35,                // シュートのとき、近くのDFの守備力が質を下げる強さ
+  dribBonus: 10,                // ドリブルで抜き切ったあとのシュートの有利
+  rebHand: .012,                // GKのキャッチ1あたり、こぼれ球になりにくくなる割合
+  claim: .07, claimH: .012, claimHand: .002,   // GKがクロス・CKに飛び出してキャッチする確率（基本・身長1cm・キャッチ1）
+  gkHlong: .3, gkHclose: .2, gkHhead: .2,      // GKの身長：ミドル・FKに強い／至近距離は小柄が有利／ヘディング
+  // スキルの強さ
+  skMid: { "ナンバー10": 40, "バンディエラ": 40, "【極】ファンタジスタ": 60 },   // 中盤の主導権争いへの上乗せ
+  skGK: 4, skGKr: 8,           // 守護神／神の手：セーブへの上乗せ
+  skDL: 4, skWall: 8, skWallP: .4, skLast: 8,   // ディフェンスリーダー（チーム）／鉄壁（シュートコース）／最後の砦（チーム）
+  skSpeed: 20,                  // スピードスター：抜け出し（スルーパス・ワンツー）
+  skAir: 30, skAirR: 55,        // エアリアル／【極】エアフォース：空中戦
+  skCross: 40,                  // クロサー：クロス・CKの精度
+  skFK: 30, skFKdir: .9,        // フリーキッカー：直接FKの決まりやすさ・直接狙う割合
+  skCannon: 16, skCannonW: 60,  // 大砲：ミドルシュートの決まりやすさ・打つ回数
+  skFox: 20, skFoxR: 3,        // フォックス：こぼれ球の押し込み・詰める回数
+  skHW: 55,                     // ハードワーカー：プレス（1人あたり）
+  skClutch: 35,                 // クラッチ：75分以降のシュート
+  skFort: 6, skFortChase: .4,   // フォートレス：リードを守る後半の守り・相手の追い上げを弱める
+  skPK: 15, skPKbox: 6,                     // PKストッパー
+  skSweep: 35, skSweepC: .18, skSweepShot: 8,   // スイーパーキーパー：スルーパス対応・クロスへの飛び出し
+  skPlay: { pass: 20, combo: 15, thru: 15, mid: 60 },   // 【極】司令塔
+  skBig: 1.04,                  // 【極】ビッグゲーム：格上・カップ戦で能力が上がる
   stats: null,
 };
 
@@ -1947,10 +2059,45 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   const pPart = isPHome ? hPart : aPart;
   let hs = 0, as = 0;
   let hT = teamStats(hS), aT = teamStats(aS);
+  // 試合のスタッツ（実況に出ない細かいプレーも含む）と警告
+  const MS = { home: { sh: 0, on: 0, ck: 0, fo: 0, yc: 0, rc: 0 }, away: { sh: 0, on: 0, ck: 0, fo: 0, yc: 0, rc: 0 } };
+  const yellow = new Set(), sentOff = [];
+  const sideOf = p => hS.includes(p) ? "home" : "away";
+  const form = { home: randint(-TUNE2.formRand, TUNE2.formRand), away: randint(-TUNE2.formRand, TUNE2.formRand) };
+  // ファウルした選手へのカード。2枚目の警告か一発退場なら、その選手はピッチを去る
+  const card = p => {
+    if (!p || p.pos === "GK" && rnd() < .7) return null;
+    const sd = sideOf(p), S_ = sd === "home" ? hS : aS;
+    if (!S_.includes(p)) return null;
+    let kind = null;
+    if (rnd() < TUNE2.redRate) kind = "red";
+    else if (rnd() < TUNE2.ycRate * (yellow.has(p) ? .35 : 1)) { kind = yellow.has(p) ? "red2" : "yellow"; yellow.add(p); MS[sd].yc++; }   // 警告を受けた選手は慎重になる
+    if (kind === "red" || kind === "red2") {
+      MS[sd].rc++; S_.splice(S_.indexOf(p), 1); sentOff.push(p); p.susp = (p.susp || 0) + (kind === "red" ? randint(1, 3) : 1);
+      if (sd === "home") hT = teamStats(hS); else aT = teamStats(aS);
+    }
+    return kind;
+  };
   const has = (s, sk) => s.some(p => p.skill === sk);
   const who = (s, sk) => s.find(p => p.skill === sk).name;
   const ev = (min, text, cls = "", wait = 700) => ({ t: "line", min, text, cls, wait, hs, as });
-  const V = (p, k) => parseInt(p[k]) || 30;
+  // 能力値：体力が低い・終盤にスタミナが切れると下がる
+  const sk = (p, n) => !!p && p.skill === n;
+  const aerB = p => sk(p, "【極】エアフォース") ? TUNE2.skAirR : sk(p, "エアリアル") ? TUNE2.skAir : 0;   // 空中戦の強さの上乗せ
+  const crossB = p => sk(p, "クロサー") ? TUNE2.skCross : 0;
+  // 【極】ビッグゲーム：格上が相手のときやカップ戦で、チーム全員の能力が上がる
+  const xiAvg = S_ => S_.reduce((a, p) => a + getOvr(p), 0) / Math.max(1, S_.length);
+  const bigG = { home: hS.some(p => sk(p, "【極】ビッグゲーム")) && (isCup || xiAvg(hS) < xiAvg(aS)), away: aS.some(p => sk(p, "【極】ビッグゲーム")) && (isCup || xiAvg(aS) < xiAvg(hS)) };
+  let curScene = 1;
+  const emp = { home: false, away: false };   // 皇帝がいるチーム（後半の疲れなし）
+  const V = (p, k) => {
+    const v = parseInt(p[k]) || 30, c = parseInt(p.condition); const cn = isNaN(c) ? 100 : c;
+    const heart = p.skill === "心臓";
+    let f = heart ? 1 : 1 - Math.max(0, TUNE2.condFrom - cn) / TUNE2.condK;
+    if (curScene > 5 && !heart && !(emp.home && hPart.has(p)) && !(emp.away && aPart.has(p))) f -= (100 - (parseInt(p.stamina) || 60)) * TUNE2.tireK * (curScene - 5) / 5;
+    if ((bigG.home && hPart.has(p)) || (bigG.away && aPart.has(p))) f *= TUNE2.skBig;
+    return v * Math.max(.6, f);
+  };
   const HT = p => parseInt(p.height) || 181;
   const AIR = p => (HT(p) - 181) * TUNE2.airH;          // 空中戦の身長補正
   const part = p => (hPart.get(p) || aPart.get(p));
@@ -1991,20 +2138,21 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
 
   let poss = "home";       // いまボールを持っているチーム（前のプレーの結果で決まる）
   for (let scene = 1; scene <= 10; scene++) {
-    const min = scene * 9;
+    curScene = scene; emp.home = has(hS, "【極】皇帝"); emp.away = has(aS, "【極】皇帝");
+    const min = (scene - 1) * 9 + randint(3, 9);   // そのシーンの時間（9分刻みの中でばらつかせる）
     // ---- 中盤の主導権（旧エンジンと同じ） ----
     let hMid = hT.control + randint(0, TUNE2.midRand) + hT.leadership * 0.2;
     let aMid = aT.control + randint(0, TUNE2.midRand) + aT.leadership * 0.2;
-    if (has(hS, "ナンバー10")) hMid += 5;
-    if (has(aS, "ナンバー10")) aMid += 5;
-    if (has(hS, "バンディエラ")) { hMid += 10; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `★ バンディエラ ${who(hS, "バンディエラ")} の高い統率力！`, "good", 500); }
-    if (has(aS, "バンディエラ")) { aMid += 10; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `★ バンディエラ ${who(aS, "バンディエラ")} の高い統率力！`, "good", 500); }
+    if (has(hS, "ナンバー10")) hMid += TUNE2.skMid["ナンバー10"];
+    if (has(aS, "ナンバー10")) aMid += TUNE2.skMid["ナンバー10"];
+    if (has(hS, "バンディエラ")) { hMid += TUNE2.skMid["バンディエラ"]; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `★ バンディエラ ${who(hS, "バンディエラ")} の高い統率力！`, "good", 500); }
+    if (has(aS, "バンディエラ")) { aMid += TUNE2.skMid["バンディエラ"]; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `★ バンディエラ ${who(aS, "バンディエラ")} の高い統率力！`, "good", 500); }
     if (hS.some(p => p.skill === "スーパーサブ" && pPart.get(p) === 2)) hMid += 5;
     if (aS.some(p => p.skill === "スーパーサブ" && pPart.get(p) === 2)) aMid += 5;
-    if (has(hS, "【極】皇帝")) { hMid += 25; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `👑 皇帝 ${who(hS, "【極】皇帝")} がピッチを支配している！`, "rare", 500); }
-    if (has(aS, "【極】皇帝")) { aMid += 25; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `👑 皇帝 ${who(aS, "【極】皇帝")} がピッチを支配している！`, "rare", 500); }
-    if (has(hS, "【極】ファンタジスタ")) hMid += 20;
-    if (has(aS, "【極】ファンタジスタ")) aMid += 20;
+    if (has(hS, "【極】皇帝")) { hMid += 5; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `👑 皇帝 ${who(hS, "【極】皇帝")} がピッチを支配している！`, "rare", 500); }
+    if (has(aS, "【極】皇帝")) { aMid += 5; if (verbose && (scene === 1 || scene === 6)) yield ev(min, `👑 皇帝 ${who(aS, "【極】皇帝")} がピッチを支配している！`, "rare", 500); }
+    if (has(hS, "【極】ファンタジスタ")) hMid += TUNE2.skMid["【極】ファンタジスタ"];
+    if (has(aS, "【極】ファンタジスタ")) aMid += TUNE2.skMid["【極】ファンタジスタ"];
     if (scene > 5) {
       if (!has(hS, "【極】皇帝")) hMid -= sum(hS.filter(p => p.skill !== "心臓").map(p => (100 - p.stamina) * 0.15));
       else if (verbose && scene === 6) yield ev(min, `✨ 皇帝の威光により、${home.name} の全選手が活力を維持している！`, "rare", 500);
@@ -2012,19 +2160,32 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       else if (verbose && scene === 6) yield ev(min, `✨ 皇帝の威光により、${away.name} の全選手が活力を維持している！`, "rare", 500);
     }
     if (poss === "home") hMid += TUNE2.possBonus; else aMid += TUNE2.possBonus;
+    hMid += TUNE2.homeAdv + form.home - (11 - hS.length) * TUNE2.redPen;
+    aMid += form.away - (11 - aS.length) * TUNE2.redPen;
+    // 負けているチームは前がかりになり、勝っているチームは守りに入る（追いつく・追い上げる試合が増える）
+    { let d = Math.max(-2, Math.min(2, hs - as)) * TUNE2.chase * (scene > 5 ? 1.5 : 1);
+      if ((d > 0 && has(hS, "フォートレス")) || (d < 0 && has(aS, "フォートレス"))) d *= TUNE2.skFortChase;   // リードを守り切る
+      hMid -= d; aMid += d; }
     // キャプテンの統率力、攻撃スタイル（持っているとき）、守備ライン（持っていないとき＝奪いに行く強さ）
     hMid += (parseInt(captainOf(hS, home).leadership) || 50) * .12; aMid += (parseInt(captainOf(aS, away).leadership) || 50) * .12;
     const ST_ = { home: TAC_STYLE[TAC.home.style] || TAC_STYLE.balance, away: TAC_STYLE[TAC.away.style] || TAC_STYLE.balance };
     const LN_ = { home: TAC_LINE[TAC.home.line] || TAC_LINE.mid, away: TAC_LINE[TAC.away.line] || TAC_LINE.mid };
     if (poss === "home") { hMid += ST_.home.keep; aMid += LN_.away.press; } else { aMid += ST_.away.keep; hMid += LN_.home.press; }
+    // 持っていない側は、MF・FWの運動量とタックルでボールを奪いに行く
+    if (poss === "home") aMid += aT.press * TUNE2.pressK; else hMid += hT.press * TUNE2.pressK;
+    // ハードワーカーは守備のプレスに、司令塔は試合の支配に効く
+    const nHW = S_ => S_.filter(p => sk(p, "ハードワーカー")).length;
+    if (poss === "home") aMid += nHW(aS) * TUNE2.skHW; else hMid += nHW(hS) * TUNE2.skHW;
+    if (has(hS, "【極】司令塔")) hMid += TUNE2.skPlay.mid; if (has(aS, "【極】司令塔")) aMid += TUNE2.skPlay.mid;
     let atkTeam, atkS, defS;
     if (hMid > aMid) { atkTeam = home; atkS = hS; defS = aS; }
     else { atkTeam = away; atkS = aS; defS = hS; }
     const side = atkTeam === home ? "home" : "away";
 
     // ---- 攻撃の中身 ----
-    const penalty = playerTeam === away ? 15 : 0;          // 旧エンジンと同じ：アウェイの自チームは突破しにくい
     const A = atkS, D = defS, oth = other_(side);
+    // アウェイの攻撃は少し通りにくい。その日の調子の差も突破のしやすさに効く
+    const penalty = (side === "away" ? TUNE2.awayPen : 0) - (form[side] - form[oth]) * TUNE2.formAtk;
     // フィールドの選手（本職GKがフィールドの枠に入っているときも、足りなければその選手を数える）
     const OF = s => { const o = s.filter(p => (SL.get(p) || {}).role !== "GK" && p.pos !== "GK"); return o.length >= 3 ? o : s.filter(p => (SL.get(p) || {}).role !== "GK"); };
     const role = (s, ...rs) => { const c = s.filter(p => rs.includes((SL.get(p) || { role: p.pos }).role)); return c.length ? c : OF(s); };
@@ -2056,19 +2217,41 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     if (verbose && regain) yield { ...ev(min, `${regainBy.name} が${choice(["素早いプレスでボールを奪う！", "パスコースを読んでカット！", "高い位置でボール奪取！", "球際で競り勝つ！"])}`, "", 700), who: regainBy };
 
     // シュート判定（種類ごとにボーナス）。戻り値: "goal" | "save" | "miss" | "block"
-    function shotRoll(striker, kind) {
-      let atkF, extra = [];
-      if (kind === "header") atkF = V(striker, "jumping") * 0.4 + V(striker, "finishing") * 0.4 + V(striker, "strength") * 0.2 + (HT(striker) - 181) * TUNE2.headH + randint(0, 40) + TUNE2.headBonus;
-      else if (kind === "fk") atkF = V(striker, "passing") * 0.4 + V(striker, "finishing") * 0.3 + V(striker, "composure") * 0.3 + randint(0, 40) + TUNE2.fkBonus;
-      else if (kind === "pk") atkF = V(striker, "finishing") * 0.4 + V(striker, "composure") * 0.6 + randint(0, 40) + TUNE2.pkBonus;
-      else atkF = V(striker, "finishing") * 0.7 + V(striker, "composure") * 0.3 + randint(0, 40) + TUNE2.shotBonus;
-      let defF = V(gk, "reflexes") * 0.55 + V(gk, "positioning") * 0.3 + (HT(gk) - 188) * TUNE2.gkH + randint(0, 20);
+    function shotRoll(striker, kind, spot = "box", bonus = 0) {
+      let q, extra = [];
+      if (kind === "header") q = V(striker, "jumping") * 0.4 + V(striker, "finishing") * 0.4 + V(striker, "strength") * 0.2;
+      else if (kind === "fk") q = V(striker, "passing") * 0.4 + V(striker, "finishing") * 0.3 + V(striker, "composure") * 0.3;
+      else if (kind === "pk") q = V(striker, "finishing") * 0.4 + V(striker, "composure") * 0.6;
+      else q = V(striker, "finishing") * 0.7 + V(striker, "composure") * 0.3;
+      const kb = { header: TUNE2.headBonus + (HT(striker) - 181) * TUNE2.headH, fk: TUNE2.fkBonus, pk: TUNE2.pkBonus }[kind] ?? TUNE2.shotBonus;
+      let atkF = 65 + (q - 65) * TUNE2.finW + randint(0, 40) + kb + bonus;
+      if (kind === "fk" && sk(striker, "フリーキッカー")) { atkF += TUNE2.skFK; extra.push([`🎯 フリーキッカー ${striker.name} の精密なキック！`, "skill", striker]); }
+      if (kind === "shot" && spot === "edge" && sk(striker, "大砲")) { atkF += TUNE2.skCannon; extra.push([`💥『大砲』${striker.name} の強烈なミドル！`, "skill", striker]); }
+      if (kind !== "pk" && min >= 75 && sk(striker, "クラッチ")) { atkF += TUNE2.skClutch; extra.push([`⏱️『クラッチ』${striker.name} が勝負どころで集中力を高める！`, "skill", striker]); }
+      if (kind !== "pk" && scene > 5 && has(D, "フォートレス") && (side === "home" ? as > hs : hs > as)) atkF -= TUNE2.skFort;   // リードを守る堅陣
+      // 近くのDFがシュートコースを狭める（PK・直接FKは除く）
+      if (kind !== "pk" && kind !== "fk") {
+        // 鉄壁の選手はシュートコースに体を投げ出しに来る
+        const wall = D.find(p => p.skill === "鉄壁");
+        const dfn = wall && rnd() < TUNE2.skWallP ? wall : nearPick(role(D, "DF", "MF"), oth, false, ...flip([spot === "edge" ? .74 : .86, .5]), 10);
+        if (dfn) atkF -= (V(dfn, "marking") * .4 + V(dfn, "positioning") * .4 + V(dfn, "tackling") * .2 - 65) * TUNE2.shotDefW;
+        if (dfn && dfn.skill === "鉄壁") { atkF -= TUNE2.skWall; extra.push([`🛡️ ${dfn.name} の『鉄壁』がシュートコースを塞ぐ！`, "info", dfn]); }
+        if (has(D, "ディフェンスリーダー")) atkF -= TUNE2.skDL;   // 最終ラインを統率して、良い形で打たせない
+        if (has(D, "【極】最後の砦")) { atkF -= TUNE2.skLast; if (rnd() < .3) extra.push([`🧱 最後の砦 ${who(D, "【極】最後の砦")} が最後まで体を寄せる！`, "rare", D.find(p => p.skill === "【極】最後の砦")]); }
+      }
+      // GK：反応・位置取り・キャッチ。身長はシュートの距離で有利不利が変わる
+      const g = V(gk, "reflexes") * .6 + V(gk, "positioning") * .3 + V(gk, "handling") * .1, dh = HT(gk) - 188;
+      const hB = kind === "pk" ? 0 : kind === "header" ? dh * TUNE2.gkHhead : (kind === "fk" || spot === "edge") ? dh * TUNE2.gkHlong : -dh * TUNE2.gkHclose;
+      let defF = TUNE2.gkBase + (g - 65) * TUNE2.gkW + hB + randint(0, 20);
+      if (kind !== "pk" && spot === "box" && sk(gk, "PKストッパー")) defF += TUNE2.skPKbox;
+      if (kind === "thru" && sk(gk, "スイーパーキーパー")) defF += TUNE2.skSweepShot;   // 抜け出した相手に素早く間合いを詰める   // 1対1の駆け引きにも強い
+      if (kind === "pk" && sk(gk, "PKストッパー")) { defF += TUNE2.skPK; extra.push([`🧤 PKストッパー ${gk.name} がコースを読む！`, "info", gk]); }
       if (kind === "thru") atkF += 6;
       if (striker.skill === "エースストライカー") { atkF += 10; extra.push([`★ ${striker.name} の『エースストライカー』が発動！`, "skill", striker]); }
       if (striker.skill === "スーパーサブ" && part(striker) === 2) { atkF += 10; extra.push([`★ スーパーサブ ${striker.name} が躍動している！`, "skill", striker]); }
-      if (gk.skill === "守護神") { defF += 10; extra.push([`★ GK ${gk.name} の『守護神』が発動！`, "info", gk]); }
+      if (gk.skill === "守護神") { defF += TUNE2.skGK; extra.push([`★ GK ${gk.name} の『守護神』が発動！`, "info", gk]); }
       if (striker.skill === "【極】怪物") { atkF += 25; extra.push([`🔥『怪物』${striker.name} の異次元なシュート！`, "rare", striker]); }
-      if (gk.skill === "【極】神の手") { defF += 25; extra.push([`🧤 ${gk.name} の『神の手』！物理法則を超えた反射神経！`, "rare", gk]); }
+      if (gk.skill === "【極】神の手") { defF += TUNE2.skGKr; extra.push([`🧤 ${gk.name} の『神の手』！物理法則を超えた反射神経！`, "rare", gk]); }
       let res;
       if (atkF > defF) res = "goal";
       else {
@@ -2093,9 +2276,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       }
     }
     // シュート → 結果 → 続くセットプレー（CK・ゴールキック）まで
-    function* finish(striker, kind, assister, spot) {
+    let reb = false;
+    function* finish(striker, kind, assister, spot, bonus = 0) {
       if (ST) ST.shot++;
-      const { res, extra } = shotRoll(striker, kind);
+      const { res, extra } = shotRoll(striker, kind, spot, bonus);
+      MS[side].sh++; if (res === "goal" || res === "save") MS[side].on++;
       if (ST) { ST['n_' + kind] = (ST['n_' + kind] || 0) + 1; if (res === 'goal') ST['g_' + kind] = (ST['g_' + kind] || 0) + 1; }
       const KN = { header: "ヘディングシュート", fk: "直接フリーキック", pk: "PK", thru: "シュート", shot: "シュート" }[kind] || "シュート";
       const blocker = res === "block" ? nearPick(role(D, "DF", "MF"), oth, false, .14, 1 - bL(side)[1], 10) : null;   // シュートコースにいる相手
@@ -2112,6 +2297,13 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       }
       if (res === "save") {
         if (verbose) yield ev(min, `GK ${gk.name} がセーブ！`, "save", 900);
+        // こぼれ球：ゴール前の味方が押し込みに行く（アシストなし）
+        const fox = A.find(p => sk(p, "フォックス") && p !== striker);
+        if (kind !== "pk" && !reb && rnd() < TUNE2.rebound * (fox ? TUNE2.skFoxR : 1) * Math.max(.3, 1 - (V(gk, "handling") - 60) * TUNE2.rebHand)) {
+          reb = true;
+          const rb = fox && rnd() < .7 ? fox : nearPick(OF(A).filter(p => p !== striker), side, true, .9, .5, 12, p => (V(p, "positioning") + V(p, "finishing")) / 140);
+          if (rb) { if (verbose) yield { ...ev(min, sk(rb, "フォックス") ? `🦊『フォックス』${rb.name} がこぼれ球に誰よりも早く詰める！` : `こぼれ球に ${rb.name} が詰める！`, sk(rb, "フォックス") ? "skill" : "", 700), who: rb }; yield* finish(rb, "shot", null, "box", sk(rb, "フォックス") ? TUNE2.skFox : 0); return; }
+        }
         if (kind !== "pk" && setPieces < 2 && rnd() < TUNE2.cornerFromSave) { yield* corner("save"); return; }
         setBall(oth, .06, .5);
         if (verbose) yield act("hold", { by: gk });
@@ -2128,18 +2320,33 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       setBall(oth, .55, .3 + rnd() * .4);
       if (verbose) { yield ev(min, "ゴールの枠を外れた…", "muted", 800); yield act("goalkick", { by: gk }); }
     }
+    // 空中戦スキルの実況
+    const airSkillLine = (won, tg, mk) => {
+      const w = won ? tg : mk; if (!aerB(w)) return null;
+      return { ...ev(min, sk(w, "【極】エアフォース") ? `🛩️『エアフォース』${w.name} が空を支配する！` : `🦅『エアリアル』${w.name} が空中戦を制す！`, sk(w, "【極】エアフォース") ? "rare" : "skill", 500), who: w };
+    };
+    // GKがクロスに飛び出してキャッチ（背が高い・キャッチがうまいほど出やすい）
+    function* gkClaim() {
+      const pr = TUNE2.claim + (HT(gk) - 188) * TUNE2.claimH + (V(gk, "handling") - 60) * TUNE2.claimHand + (sk(gk, "スイーパーキーパー") ? TUNE2.skSweepC : 0);
+      if (rnd() >= Math.max(.01, pr)) return false;
+      setBall(oth, .06, .5);
+      if (verbose) { yield { ...ev(min, HT(gk) >= 192 ? `📏 長身GK ${gk.name}（${HT(gk)}cm）が前に出てキャッチ！` : `GK ${gk.name} が飛び出してキャッチ`, HT(gk) >= 192 ? "skill" : "save", 800), who: gk }; yield act("hold", { by: gk }); }
+      return true;
+    }
     // コーナーキック：キッカー（クロス精度）→ 空中戦（ジャンプ・フィジカル）→ ヘディング
     function* corner(from) {
-      setPieces++; if (ST) ST.ck++;
-      const taker = onPitch(A, TAC[side].ck) || best(A, p => V(p, "crossing"));
+      setPieces++; if (ST) ST.ck++; MS[side].ck++;
+      const taker = onPitch(A, TAC[side].ck) || best(A, p => V(p, "crossing") + crossB(p) * 2 + (sk(p, "フリーキッカー") ? 40 : 0));
       const targets = A.filter(p => p !== taker && p.pos !== "GK");
-      const target = targets.reduce((a, b) => (V(b, "jumping") + V(b, "strength") * .5 + (HT(b) - 181) + rnd() * 30 > V(a, "jumping") + V(a, "strength") * .5 + (HT(a) - 181) + rnd() * 30 ? b : a));
-      const marker = best(D, p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + (p.pos === "DF" ? 10 : 0));
+      const tw = p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + (p.pos === "DF" ? TUNE2.setDF : 0) + aerB(p) * 1.5 + rnd() * 30;
+      const target = targets.reduce((a, b) => (tw(b) > tw(a) ? b : a));
+      const marker = best(D, p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + (p.pos === "DF" ? 10 : 0) + aerB(p) * 1.5);
       const wing = rnd() < .5 ? 0 : 1;
       if (verbose) { yield ev(min, `コーナーキック。キッカーは ${taker.name}`, "", 700); yield act("corner", { taker, target, marker, wing }); }
-      const aer = V(taker, "crossing") * .3 + V(target, "jumping") * .45 + V(target, "strength") * .25 + AIR(target) + randint(0, 50);
-      const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50);
-      if (verbose) { const l = airLine(aer > def + 4, target, marker); if (l) yield l; }
+      if (yield* gkClaim()) return;
+      const aer = V(taker, "crossing") * .3 + V(target, "jumping") * .45 + V(target, "strength") * .25 + AIR(target) + randint(0, 50) + aerB(target) + crossB(taker) + (sk(taker, "フリーキッカー") ? TUNE2.skCross * .6 : 0);
+      const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50) + aerB(marker);
+      if (verbose) { const l = airLine(aer > def + 4, target, marker); if (l) yield l; else { const sl = airSkillLine(aer > def + 4, target, marker); if (sl) yield sl; } }
       if (aer > def + 4) yield* finish(target, "header", taker, "box");
       else {
         const out = rnd() < .3;
@@ -2156,7 +2363,13 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     function* foul(fouler, victim, inBox) {
       if (ST) ST.foul++;
       setPieces++;
+      MS[oth].fo++;
       if (verbose) { yield ev(min, `${fouler.name} のファウル！`, "muted", 700); yield act("foul", { by: fouler, on: victim, inBox }); }
+      const cd = card(fouler);
+      if (verbose && cd) {
+        if (cd === "yellow") yield { ...ev(min, `🟨 ${fouler.name} にイエローカード`, "muted", 700), who: fouler };
+        else { yield { ...ev(min, cd === "red2" ? `🟨🟥 ${fouler.name} に2枚目のイエロー。退場！` : `🟥 ${fouler.name} に一発レッド！退場！`, "bad", 1000), who: fouler }; yield { t: "sendoff", side: oth, p: fouler, min, hs, as }; }
+      }
       if (inBox) {
         if (ST) ST.pk++;
         const taker = onPitch(A, TAC[side].pk) || best(A, p => V(p, "composure") * .6 + V(p, "finishing") * .4);
@@ -2165,8 +2378,8 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         return;
       }
       // エリア外のFK：ゴール正面なら直接、サイドならクロスを入れる
-      const taker = onPitch(A, TAC[side].fk) || best(A, p => V(p, "passing") * .5 + V(p, "finishing") * .3 + V(p, "composure") * .2);
-      const direct = rnd() < .55;
+      const taker = onPitch(A, TAC[side].fk) || best(A, p => V(p, "passing") * .5 + V(p, "finishing") * .3 + V(p, "composure") * .2 + (sk(p, "フリーキッカー") ? 30 : 0));
+      const direct = rnd() < (sk(taker, "フリーキッカー") ? TUNE2.skFKdir : .55);
       if (ST) ST.fk++;
       if (verbose) yield act("freekick", { taker, direct, wall: byPos(D, "DF", "MF").slice(0, 4), wing: rnd() < .5 ? 0 : 1 });
       if (direct) {
@@ -2174,10 +2387,10 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         yield* finish(taker, "fk", null, "fk");
       } else {
         if (verbose) yield ev(min, `${taker.name} がフリーキックをゴール前へ`, "", 700);
-        const target = best(A.filter(p => p !== taker), p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + rnd() * 30);
-        const marker = best(D, p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181));
-        const aer = V(taker, "crossing") * .3 + V(target, "jumping") * .45 + V(target, "strength") * .25 + AIR(target) + randint(0, 50);
-        const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50);
+        const target = best(A.filter(p => p !== taker), p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + (p.pos === "DF" ? TUNE2.setDF : 0) + aerB(p) * 1.5 + rnd() * 30);
+        const marker = best(D, p => V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + aerB(p) * 1.5);
+        const aer = V(taker, "crossing") * .3 + V(target, "jumping") * .45 + V(target, "strength") * .25 + AIR(target) + randint(0, 50) + aerB(target) + crossB(taker);
+        const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50) + aerB(marker);
         if (verbose) yield act("fkcross", { taker, target, marker, ok: aer > def + 4 });
         if (verbose) { const l = airLine(aer > def + 4, target, marker); if (l) yield l; }
         if (aer > def + 4) yield* finish(target, "header", taker, "box");
@@ -2196,7 +2409,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       const press = sum(byPos(D, "MF", "FW").map(p => V(p, "workrate") * .5 + V(p, "positioning") * .5)) / Math.max(1, byPos(D, "MF", "FW").length);
       const passQ = V(r1, "passing") * .6 + V(r1, "vision") * .4 + (r1.skill === "ナンバー10" ? 10 : 0);
       if (verbose) yield act("pass", { from: p1, to: r1, zone: regain ? "mid" : "build" });
-      let cutP = TUNE2.cutBase + (press - passQ) / 300;
+      let cutP = TUNE2.cutBase + (press - passQ - (has(A, "【極】司令塔") ? TUNE2.skPlay.pass : 0)) / 300;
       cutP = Math.max(.03, Math.min(.3, cutP));
       if (rnd() < cutP) {
         const [r1x, r1y] = posL(r1, side, true);
@@ -2222,7 +2435,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
           x += .06;
           const recv = nearPick(role(A, "MF", "FW").filter(p => p !== holder && p !== prev) .length ? role(A, "MF", "FW").filter(p => p !== holder && p !== prev) : OF(A).filter(p => p !== holder), side, true, x + .04, cl(hy + (rnd() - .5) * .3, .2, .8), 12);
           const df = nearPick(OF(D), oth, false, ...flip([x + .03, hy]), 10);
-          const q = V(holder, "passing") * .6 + V(holder, "vision") * .2 + V(recv, "composure") * .2 - (V(df, "marking") * .5 + V(df, "positioning") * .5) + randint(0, TUNE2.comboRand);
+          const q = V(holder, "passing") * .6 + V(holder, "vision") * .2 + V(recv, "composure") * .2 - (V(df, "marking") * .5 + V(df, "positioning") * .5) + randint(0, TUNE2.comboRand) + (has(A, "【極】司令塔") ? TUNE2.skPlay.combo : 0);
           if (q < TUNE2.comboThr + penalty * .5) {
             setBall(oth, ...flip([x, hy]));
             if (verbose) { yield act("intercept", { from: holder, to: recv, by: df }); yield ev(min, `→ ${df.name} が間に入ってカット`, "muted", 700); }
@@ -2242,7 +2455,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         const [rx, ry] = posL(R, side, true);
         const W = nearPick(role(A, "MF", "FW").filter(p => p !== R).length ? role(A, "MF", "FW").filter(p => p !== R) : OF(A).filter(p => p !== R), side, true, Math.min(.85, rx + .1), cl(ry + (ry > .5 ? -.12 : .12), .2, .8), 12);
         const Dd = nearPick(role(D, "DF", "MF"), oth, false, ...flip([rx + .06, ry]), 10);
-        const q = V(R, "acceleration") * .5 + V(R, "speed") * .3 + V(W, "passing") * .4 - (V(Dd, "speed") * .4 + V(Dd, "positioning") * .5) + randint(0, TUNE2.o2Rand) + behind + trans;
+        const q = V(R, "acceleration") * .5 + V(R, "speed") * .3 + V(W, "passing") * .4 - (V(Dd, "speed") * .4 + V(Dd, "positioning") * .5) + randint(0, TUNE2.o2Rand) + behind + trans + (R.skill === "スピードスター" ? TUNE2.skSpeed : 0);
         const ok = q > TUNE2.o2Thr + penalty;
         if (verbose) { yield ev(min, `${R.name} が ${W.name} とのワンツーを狙う`, "", 700); yield act("wall", { from: R, to: W, by: Dd }); yield act("ret", { from: W, to: R, by: Dd, ok }); }
         if (ok) {
@@ -2258,24 +2471,31 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       const pAtk = nearPick(role(A, "MF", "FW").filter(p => p !== r1), side, true, bx1 + .12, by1, 13, p => V(p, "dribbling") / 70) || r1;
       let duelL = [.72, .5], pDef = null;   // 1対1の場所と相手は、ボールが渡ってから決める
       const wDrib = V(pAtk, "dribbling") + (pAtk.skill === "【極】ファンタジスタ" || pAtk.skill === "スピードスター" ? 40 : 0);
-      const wThru = V(r1, "vision") * .45 + (r1.skill === "ナンバー10" ? 25 : 0);
+      const speedFW = A.find(p => p.skill === "スピードスター" && p.pos !== "GK");
+      const wThru = V(r1, "vision") * .45 + (r1.skill === "ナンバー10" ? 25 : 0) + (speedFW ? 25 : 0);   // 快足の選手がいれば裏を狙う
       const wCombo = (V(r1, "passing") + V(pAtk, "passing")) / 2;
       const wO2 = (V(pAtk, "acceleration") + V(pAtk, "passing")) / 2 * .6;
       const wingY = by1 < .5 ? .08 : .92;                                   // ボールのある側のサイド
-      const wing = nearPick(OF(A).filter(p => p !== r1 || OF(A).length < 3), side, true, .66, wingY, 16, p => V(p, "crossing") / 70);
+      const wing = nearPick(OF(A).filter(p => p !== r1 || OF(A).length < 3), side, true, .66, wingY, 16, p => (V(p, "crossing") + crossB(p) * 3) / 70);
       const wCross = V(wing, "crossing") * .8;
       // 攻撃の形：ドリブル / スルーパス / クロス / パス交換 / ワンツー（選手の特徴で重みづけ）
       const sw = ST_[side].w;
-      const RW = [["drib", wDrib], ["thru", wThru], ["cross", wCross], ["combo", wCombo], ["o2", wO2]].map(([k, w]) => [k, w * (sw[k] || 1)]);
+      const cannon = A.find(p => sk(p, "大砲") && p.pos !== "GK");   // 大砲がいれば遠目から狙う
+      const RW = [["drib", wDrib], ["thru", wThru], ["cross", wCross], ["combo", wCombo], ["o2", wO2], ["long", cannon ? TUNE2.skCannonW : 0]].map(([k, w]) => [k, w * (sw[k] || 1)]);
       // カウンター：奪ってすぐの攻撃は相手の守備が整っていない
       const trans = regain ? (ST_[side].transition || 0) : 0;
       const behind = LN_[oth].behind;     // 相手の守備ラインが高いほど裏を突きやすい
       let rr = rnd() * RW.reduce((a, [, w]) => a + w, 0), route = "drib";
       for (const [k, w] of RW) { rr -= w; if (rr <= 0) { route = k; break; } }
       if (ST) ST["r_" + route] = (ST["r_" + route] || 0) + 1;
-      if (verbose) yield route === "thru" ? act("carry", { by: r1 }) : act("pass", { from: r1, to: route === "cross" ? wing : pAtk, zone: "mid", route });
+      if (verbose) yield route === "thru" || (route === "long" && cannon === r1) ? act("carry", { by: r1 }) : act("pass", { from: r1, to: route === "cross" ? wing : route === "long" ? cannon : pAtk, zone: "mid", route });
 
-      if (route === "combo") yield* combo();
+      if (route === "long") {
+        setBall(side, .7, .5);
+        if (verbose) yield { ...ev(min, `${cannon.name} がゴールまで距離のある位置から狙う！`, "", 700), who: cannon };
+        yield* finish(cannon, "shot", rnd() < .6 ? null : r1, "edge");
+      }
+      else if (route === "combo") yield* combo();
       else if (route === "o2") yield* oneTwo();
       else if (route === "drib") {
         // 仕掛ける選手の今の位置の前にいる相手が対応する
@@ -2283,14 +2503,14 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         pDef = nearPick(role(D, "DF", "MF"), oth, false, ...flip(duelL), 10);
         // 旧エンジンの突破判定をそのまま使う
         const drib = V(pAtk, "dribbling"), accel = V(pAtk, "acceleration");
-        const mark = V(pDef, "marking");
+        const mark = V(pDef, "marking") * .5 + V(pDef, "tackling") * .5;
         let stre = V(pDef, "strength");
         const inBoxDuel = pAtk.pos === "FW" ? rnd() < .4 : rnd() < .2;
         if (verbose) yield act("duel", { atk: pAtk, def: pDef, box: inBoxDuel });
         if (pDef.skill === "鉄壁") { stre *= 1.5; if (verbose) yield { ...ev(min, `🛡️ ${pDef.name} の『鉄壁』が立ちはだかる！`, "info", 400), who: pDef }; }
         let chance = (drib + accel * 0.5) - (mark + stre * 0.5) + trans;
         chance += (181 - HT(pAtk)) * TUNE2.agiH + (HT(pDef) - HT(pAtk)) * TUNE2.agiDiff;   // 小柄な選手は身のこなしで有利
-        if (pAtk.skill === "スピードスター") { chance += 10; if (verbose) yield { ...ev(min, `⚡ ${pAtk.name} の『スピードスター』が発動！爆速で抜き去る！`, "skill", 400), who: pAtk }; }
+        if (pAtk.skill === "スピードスター") { chance += TUNE2.skSpeed; if (verbose) yield { ...ev(min, `⚡ ${pAtk.name} の『スピードスター』が発動！爆速で抜き去る！`, "skill", 400), who: pAtk }; }
         if (pDef.skill === "ディフェンスリーダー") { chance -= 10; if (verbose) yield { ...ev(min, `🛡️ ${pDef.name} の『ディフェンスリーダー』が発動！隙を見せない！`, "info", 400), who: pDef }; }
         if (pAtk.skill === "【極】ファンタジスタ") { chance += 25; if (verbose) yield { ...ev(min, `✨ ファンタジスタ ${pAtk.name} の魔法のようなドリブル！`, "rare", 400), who: pAtk }; }
         if (pDef.skill === "【極】最後の砦") { chance -= 25; if (verbose) yield { ...ev(min, `🧱 最後の砦 ${pDef.name} が行く手を完全に塞ぐ！`, "rare", 400), who: pDef }; }
@@ -2304,11 +2524,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
           }
           // 自分で打つか、FWに預けるか
           const fws = role(A, "FW").filter(p => p !== pAtk);
-          if (fws.length && rnd() < .45) {
+          if (fws.length && rnd() < TUNE2.fwPass) {
             const st = nearPick(fws, side, true, .86, .5, 16);
             if (verbose) yield act("pass", { from: pAtk, to: st, zone: "box" });
-            yield* finish(st, "shot", pAtk, "box");
-          } else yield* finish(pAtk, "shot", lastPasser, inBoxDuel ? "box" : "edge");
+            yield* finish(st, "shot", pAtk, "box", TUNE2.dribBonus * .5);
+          } else yield* finish(pAtk, "shot", rnd() < TUNE2.soloShot ? null : lastPasser, inBoxDuel ? "box" : "edge", TUNE2.dribBonus);
         } else {
           // 止められた：きれいに奪われる / ファウル
           const fr = TUNE2.foulRate * (1.25 - V(pDef, "tackling") / 200);
@@ -2322,14 +2542,18 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         }
       } else if (route === "thru") {
         // スルーパス：出し手の視野・パス精度 vs 最終ラインの読み
-        const st = nearPick(role(A, "FW"), side, true, .8, by1, 14);
+        // 抜け出すのは基本FW。ときどき2列目のMFが飛び出す
+        const st = (speedFW && speedFW !== r1 && rnd() < .5 ? speedFW : null) || (rnd() < TUNE2.thruMF && role(A, "MF").filter(p => p !== r1).length ? nearPick(role(A, "MF").filter(p => p !== r1), side, true, .7, by1, 16, p => (V(p, "speed") + V(p, "finishing")) / 140) : null) || nearPick(role(A, "FW"), side, true, .8, by1, 14);
         const [stx, sty] = posL(st, side, true);
         const lineDef = nearPick(role(D, "DF"), oth, false, ...flip([.84, sty]), 12, p => V(p, "positioning") / 70);   // その FW の近くの DF
         if (verbose) { yield ev(min, `${r1.name} がスルーパスを狙う`, "", 800); }
         let q = V(r1, "vision") * .6 + V(r1, "passing") * .4 + V(st, "speed") * .3 - (V(lineDef, "positioning") * .6 + V(lineDef, "speed") * .3);
+        if (st.skill === "スピードスター") q += TUNE2.skSpeed;
         if (r1.skill === "ナンバー10") { q += 10; if (verbose) yield { ...ev(min, `🎯 『ナンバー10』${r1.name} のパスが通る！`, "good", 400), who: r1 }; }
         if (lineDef.skill === "ディフェンスリーダー") q -= 10;
         if (lineDef.skill === "【極】最後の砦") q -= 25;
+        if (has(A, "【極】司令塔")) q += TUNE2.skPlay.thru;
+        if (sk(gk, "スイーパーキーパー")) q -= TUNE2.skSweep;   // GKが前に出て裏のスペースを消す
         const ok = q + randint(0, TUNE2.thruRand) + behind + trans > TUNE2.thruThr + penalty;
         if (verbose) yield act("through", { from: r1, to: st, by: lineDef, ok });
         if (ok) {
@@ -2345,20 +2569,22 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         // サイドからのクロス：クロッサー vs サイドの守備、そのあと空中戦
         const wingSide = wingY > .5 ? 1 : 0;
         const fb = nearPick(OF(D), oth, false, ...flip([.84, wingY]), 12, p => V(p, "speed") / 70);           // そのサイドの相手
-        const target = nearPick(role(A, "FW", "MF").filter(p => p !== wing), side, true, .88, .5, 16, p => (V(p, "jumping") + V(p, "finishing") * .5 + (HT(p) - 181)) / 100);
-        const marker = nearPick(role(D, "DF").filter(p => p !== fb), oth, false, ...flip([.9, .5]), 12, p => (V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181)) / 100) || best(D.filter(p => p !== fb), p => V(p, "jumping"));
+        const target = nearPick(role(A, "FW", "MF").filter(p => p !== wing), side, true, .88, .5, 16, p => (V(p, "jumping") + V(p, "finishing") * .5 + (HT(p) - 181) + aerB(p) * 2) / 100);
+        const marker = nearPick(role(D, "DF").filter(p => p !== fb), oth, false, ...flip([.9, .5]), 12, p => (V(p, "jumping") + V(p, "strength") * .5 + (HT(p) - 181) + aerB(p) * 2) / 100) || best(D.filter(p => p !== fb), p => V(p, "jumping"));
         if (verbose) yield ev(min, `${wing.name} がサイドを駆け上がる`, "", 700);
-        const c1 = V(wing, "crossing") * .7 + V(wing, "speed") * .3 - (V(fb, "marking") * .5 + V(fb, "speed") * .3) + randint(0, TUNE2.crossRand) + (ST_[side].crossQ || 0);
+        const c1 = V(wing, "crossing") * .7 + V(wing, "speed") * .3 - (V(fb, "marking") * .5 + V(fb, "speed") * .3) + randint(0, TUNE2.crossRand) + (ST_[side].crossQ || 0) + crossB(wing);
         if (c1 < TUNE2.crossThr * .6 + penalty) {
           // クロスを上げさせない → スローインかCK
           if (verbose) yield act("blockcross", { from: wing, by: fb, wing: wingSide });
           if (setPieces < 2 && rnd() < TUNE2.cornerFromClear) { if (verbose) yield ev(min, `${fb.name} がクロスをブロック。コーナーキックに`, "muted", 700); yield* corner("clear"); }
           else { endPoss = side; setBall(side, .8, wingY); if (verbose) { yield ev(min, `${fb.name} が体を寄せてスローインに逃れる`, "muted", 700); yield act("throw", { wing: wingSide, attacking: true, at: [.8, wingY], taker: wing, to: nearPick(OF(A).filter(p => p !== wing), side, true, .75, wingY, 14) }); } }
         } else {
-          const aer = V(wing, "crossing") * .35 + V(target, "jumping") * .4 + V(target, "strength") * .25 + AIR(target) + randint(0, 50) + (ST_[side].crossQ || 0) * .5;
-          const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50);
+          const aer = V(wing, "crossing") * .35 + V(target, "jumping") * .4 + V(target, "strength") * .25 + AIR(target) + randint(0, 50) + (ST_[side].crossQ || 0) * .5 + aerB(target) + crossB(wing);
+          const def = V(marker, "jumping") * .45 + V(marker, "strength") * .3 + V(marker, "positioning") * .25 + AIR(marker) + randint(0, 50) + aerB(marker);
           const ok = aer > def;
-          if (verbose) { yield ev(min, `${wing.name} がクロス！`, "", 700); yield act("cross", { from: wing, to: target, by: marker, wing: wingSide, ok }); }
+          if (verbose) yield ev(min, `${wing.name} がクロス！`, "", 700);
+          if (yield* gkClaim()) return;
+          if (verbose) yield act("cross", { from: wing, to: target, by: marker, wing: wingSide, ok });
           if (verbose) { const l = airLine(ok, target, marker); if (l) yield l; }
           if (ok) yield* finish(target, "header", wing, "box");
           else {
@@ -2370,9 +2596,42 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       }
     }
     yield* play();
+    // 実況に出ない細かいプレー（中盤での小競り合い・遠目のシュート・CK）をスタッツに加える
+    {
+      const shH = Math.max(.15, Math.min(.85, .5 + (hMid - aMid) / 800));
+      MS.home.pp = (MS.home.pp || 0) + shH; MS.away.pp = (MS.away.pp || 0) + 1 - shH;   // ボール支配率の元
+      const pois = l => { let k = 0, t = Math.exp(-l), q = rnd(); while (q > t && k < 20) { k++; q *= rnd(); } return k; };
+      for (const [sd, sh] of [["home", shH], ["away", 1 - shH]]) {
+        const S_ = sd === "home" ? hS : aS;
+        const nS = pois(TUNE2.bgShot * sh * 2); MS[sd].sh += nS; for (let i = 0; i < nS; i++) if (rnd() < TUNE2.bgOn) MS[sd].on++;
+        MS[sd].ck += pois(TUNE2.bgCorner * sh * 2);
+        const nF = pois(TUNE2.bgFoul * (1 - sh));   // 押し込まれている側ほどファウルが多い
+        for (let i = 0; i < nF; i++) {
+          MS[sd].fo++;
+          const f = choice(S_.filter(p => p.pos !== "GK")); const cd = card(f);
+          if (verbose && cd) {
+            if (cd === "yellow") yield { ...ev(min, `🟨 ${f.name} にイエローカード`, "muted", 500), who: f };
+            else { yield { ...ev(min, cd === "red2" ? `🟨🟥 ${f.name} に2枚目のイエロー。退場！` : `🟥 ${f.name} に一発レッド！退場！`, "bad", 1000), who: f }; yield { t: "sendoff", side: sd, p: f, min, hs, as }; }
+          }
+        }
+      }
+      if (verbose) yield { t: "stats", ms: JSON.parse(JSON.stringify(MS)) };
+    }
     poss = scene === 5 ? "away" : endPoss;     // 後半はアウェイのキックオフから
     if (scene === 5) ballH = [.5, .5];
 
+    // 他クラブ：ベンチにスーパーサブがいれば後半から投入する
+    if (scene === 5) for (const [team, S_, P_, sd] of [[home, hS, hPart, "home"], [away, aS, aPart, "away"]]) {
+      if (team === playerTeam) continue;
+      const ss = team.roster.find(p => p.skill === "スーパーサブ" && !S_.includes(p) && !P_.has(p) && !(p.injury_days > 0) && !(p.susp > 0) && !p.retired && !sentOff.includes(p));
+      if (!ss) continue;
+      const out = S_.filter(p => p.pos === ss.pos && p.pos !== "GK").sort((a, b) => getOvr(a) - getOvr(b))[0] || S_.filter(p => p.pos !== "GK").sort((a, b) => getOvr(a) - getOvr(b))[0];
+      if (!out) continue;
+      S_[S_.indexOf(out)] = ss; P_.set(out, 1); P_.set(ss, 2); SL.set(ss, SL.get(out));
+      (sd === "home" ? hPlayed : aPlayed).push(ss);
+      if (sd === "home") hT = teamStats(hS); else aT = teamStats(aS);
+      if (verbose) { yield { t: "aisub", side: sd, out, in: ss }; yield { ...ev(45, `交代（${team.name}）: ${out.name} ↓ / ${ss.name} ↑　切り札のスーパーサブ投入！`, "info", 700), who: ss }; }
+    }
     if (scene === 5 && verbose && playerTeam) {
       const bench = (isPHome ? home : away).roster.filter(p => !pS.includes(p) && p.injury_days === 0 && !p.retired);
       const sub = yield { t: "halftime", hs, as, onPitch: pS.slice(), bench };
@@ -2415,8 +2674,9 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     const tired = (TAC_LINE[tacOf(team).line] || TAC_LINE.mid).tired;   // 守備ラインが高いほど体力を使う
     for (const p of team.roster) {
       const st = part.get(p) || 0;
-      if (st === 3) { p.condition = Math.max(5, p.condition - (28 - Math.floor(p.stamina / 10)) - tired); p.fatigue += 10; }
-      else if (st === 1 || st === 2) { p.condition = Math.max(5, p.condition - (15 - Math.floor(p.stamina / 20)) - Math.round(tired / 2)); p.fatigue += 5; }
+      const iron = p.skill === "鉄人" ? .6 : 1;   // 鉄人は疲れにくい
+      if (st === 3) { p.condition = Math.max(5, p.condition - Math.round(((28 - Math.floor(p.stamina / 10)) + tired) * iron)); p.fatigue += Math.round(10 * iron); }
+      else if (st === 1 || st === 2) { p.condition = Math.max(5, p.condition - Math.round(((15 - Math.floor(p.stamina / 20)) + Math.round(tired / 2)) * iron)); p.fatigue += Math.round(5 * iron); }
       else { p.condition = Math.min(100, p.condition + 8); p.fatigue = Math.max(0, p.fatigue - 5); }
     }
   };
@@ -2456,7 +2716,10 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   } else if (playerTeam === away) logs.push(L(`💰 試合報酬: +${yen(aRew)}`, "good"));
   logs.push(...post);
   const rew = playerTeam === home ? hRew : playerTeam === away ? aRew : 0;
-  return { hs, as, rew, logs, pk };
+  // 出場停止：この試合に出られなかった選手の停止を1試合ぶん消化する（この試合で退場した選手は次から）
+  for (const t of [home, away]) for (const p of t.roster) if (p.susp > 0 && !sentOff.includes(p)) p.susp--;
+  if (playerTeam) for (const p of sentOff) if ((playerTeam === home ? home : away).roster.includes(p)) logs.push(L(`🟥 ${p.name} は退場のため、次の${p.susp}試合は出場停止です。`, "bad"));
+  return { hs, as, rew, logs, pk, stats: MS };
 }
 
 function runMatch(home, away, opts = {}) {
@@ -2682,7 +2945,7 @@ function makeNewGame(world, myIdx) {
 
 // ---------------- セーブの圧縮・移行 ----------------
 const PKEYS = ["name", "pos", "age", "potential", "value", "condition", "fatigue", "retired", "injury_days", "league_goals", "cup_goals",
-  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend", "focus", "txp", "reborn", "pk", "rbv"];
+  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend", "focus", "txp", "reborn", "pk", "rbv", "susp", "lastInt"];
 const encP = p => PKEYS.map(k => p[k] ?? null);
 const decP = a => { const p = {}; PKEYS.forEach((k, i) => (p[k] = a[i])); return p; };
 function encodeSave(g) {
@@ -2893,6 +3156,9 @@ function handle(e) {
     case "act": return onAct(e);
     case "line": return onLine(e);
     case "halftime": halftime(e); return null;
+    case "stats": S.ms = e.ms; renderLiveStats(); return 0.01;
+    case "sendoff": sendOff(e); return .3;
+    case "aisub": aiSub(e); return .05;
     case "second": secondHalf(); return null;
     case "done": fulltime(e.value); return null;
   }
@@ -3424,8 +3690,15 @@ function secondHalf() {
   feed(45, "後半開始", "phase");
   at(1.2, advance);
 }
+// 他クラブの交代：マーカーの選手を入れ替える
+function aiSub(e) { const m = S.teams[e.side].markers.find(m => m.p === e.out); if (m) m.p = e.in; }
+// 退場：その選手のマーカーをピッチから消す
+function sendOff(e) {
+  const t = S.teams[e.side]; const i = t.markers.findIndex(m => m.p === e.p);
+  if (i >= 0) { const m = t.markers[i]; if (S.ball.holder === m) S.ball.holder = null; t.markers.splice(i, 1); }
+}
 function fulltime(r) {
-  S.min = 90; S.hs = r.hs; S.as = r.as;
+  S.min = 90; S.hs = r.hs; S.as = r.as; if (r.stats) S.ms = r.stats;
   feed(90, `試合終了（${r.hs}-${r.as}）`, "phase");
   kickoffShape(null); S.ball.anim = null; S.ball.holder = null;
   S.state = "done"; lastClock = ""; renderClock(); renderBoard(); renderPanel();
@@ -3438,6 +3711,9 @@ function skipToEnd() {
     if (e.t === "done") { fulltime(e.value); return; }
     if (e.t === "halftime") { feed(45, `ハーフタイム（${e.hs}-${e.as}）`, "phase"); S.input = null; continue; }
     if (e.t === "second") { S.half = 2; feed(45, "後半開始", "phase"); continue; }
+    if (e.t === "stats") { S.ms = e.ms; continue; }
+    if (e.t === "sendoff") { sendOff(e); continue; }
+    if (e.t === "aisub") { aiSub(e); continue; }
     if (e.t === "attack") { S.stats[e.side].att++; feed(e.min, `${e.team} の攻撃`, "attack " + e.side); continue; }
     if (e.t === "act" && e.kind === "shot") { S.stats[e.side].shot++; S.lastShooter = e.by; continue; }
     if (e.t === "line") {
@@ -3660,12 +3936,12 @@ function renderPanel() {
   renderCtl();
 }
 function statsHTML(live = false) {
-  const st = S.stats, row = (lab, a, b) => { const t = a + b || 1; return `<div class="lv-statrow"><span>${a}</span><div class="lv-lab">${lab}<div class="lv-statbar"><i style="width:${a / t * 100}%;background:${S.K.home.body}"></i><i style="width:${b / t * 100}%;background:${S.K.away.body}"></i></div></div><span>${b}</span></div>`; };
+  const st = S.stats, row = (lab, a, b, la = a, lb = b) => { const t = a + b || 1; return `<div class="lv-statrow"><span>${la}</span><div class="lv-lab">${lab}<div class="lv-statbar"><i style="width:${a / t * 100}%;background:${S.K.home.body}"></i><i style="width:${b / t * 100}%;background:${S.K.away.body}"></i></div></div><span>${lb}</span></div>`; };
   const gl = side => S.goals.filter(g => g.side === side).map(g => `${esc(shortName(g.name))} ${g.min}'`).join("<br>") || "—";
   return `<div class="lv-stats">
     <div class="lv-scorers"><div>${gl("home")}</div><div>${gl("away")}</div></div>
-    ${(() => { const h = S.possT.home, w = S.possT.away, t = h + w; if (!t) return ""; const ph = Math.round(h / t * 100); return `<div class="lv-statrow"><span>${ph}%</span><div class="lv-lab">ボール支配率<div class="lv-statbar"><i style="width:${ph}%;background:${S.K.home.body}"></i><i style="width:${100 - ph}%;background:${S.K.away.body}"></i></div></div><span>${100 - ph}%</span></div>`; })()}
-    ${row("シュート", st.home.shot, st.away.shot)}${row("ゴール", st.home.goal, st.away.goal)}
+    ${(() => { const h = S.ms ? S.ms.home.pp : S.possT.home, w = S.ms ? S.ms.away.pp : S.possT.away, t = h + w; if (!t) return ""; const ph = Math.round(h / t * 100); return `<div class="lv-statrow"><span>${ph}%</span><div class="lv-lab">ボール支配率<div class="lv-statbar"><i style="width:${ph}%;background:${S.K.home.body}"></i><i style="width:${100 - ph}%;background:${S.K.away.body}"></i></div></div><span>${100 - ph}%</span></div>`; })()}
+    ${S.ms ? `${row("シュート", S.ms.home.sh, S.ms.away.sh)}${row("枠内シュート", S.ms.home.on, S.ms.away.on)}${row("コーナーキック", S.ms.home.ck, S.ms.away.ck)}${row("ファウル", S.ms.home.fo, S.ms.away.fo)}${S.ms.home.yc + S.ms.away.yc + S.ms.home.rc + S.ms.away.rc ? row("警告／退場", S.ms.home.yc + S.ms.home.rc * 2, S.ms.away.yc + S.ms.away.rc * 2, `${S.ms.home.yc}／${S.ms.home.rc}`, `${S.ms.away.yc}／${S.ms.away.rc}`) : ""}` : row("シュート", st.home.shot, st.away.shot)}
     ${live ? "" : `<details><summary class="muted small">実況ログ</summary><ol class="feed" style="padding:8px 0">${S.feed.map(f => `<li class="${esc(f.cls || "")}"><span class="fm">${f.min ? f.min + "'" : ""}</span><span class="ft">${esc(f.text)}</span></li>`).join("")}</ol></details>`}
   </div>`;
 }
@@ -3964,15 +4240,28 @@ function startDayEffects() {
       p.fatigue = Math.max(0, (parseInt(p.fatigue) || 0) - 30);
     }
     d.logs.push(L("全員休養：体力+20・疲労回復"));
-    const salary = teamSalary(m), upkeep = facUpkeep(m);
+    const salary = teamSalary(m), upkeep = m.money < 0 ? 0 : facUpkeep(m);   // 借金があるあいだは施設の維持費を止める（最低限の管理だけ）
     m.money -= salary + upkeep;
     d.logs.push(L(`💰 給与 -${yen(salary)}（${m.roster.length}人分）${upkeep ? `・施設の維持費 -${yen(upkeep)}` : ""}`));
     d.logs.push(...sponsorPay(m));
     if (m.camp > 0) { m.camp -= 1; d.logs.push(L(m.camp ? `🏕️ 強化合宿：あと${m.camp}週` : "🏕️ 強化合宿が終わりました。")); }
     if (m.money < 0) {
-      const interest = Math.trunc(m.money * 0.005);   // 借金の利子は週0.5%
+      const interest = Math.max(-2000, Math.trunc(m.money * 0.005));   // 借金の利子は週0.5%（上限 週2,000円）
       m.money += interest;
       d.logs.push(L(`📉 借金の利子 -${yen(Math.abs(interest))}`, "bad"));
+      // 借金が10万円を超えたら、理事会が一番給与の高い選手を売却して返済にあてる
+      const act = m.roster.filter(p => !p.retired);
+      m.boardWait = Math.max(0, (m.boardWait || 0) - 1);
+      if (m.money < -100000 && act.length > 18 && !m.boardWait) {
+        m.boardWait = 4;   // 売却は4週に1人まで
+        const vets = act.filter(p => p.age >= 28);
+        const p = (vets.length ? vets : act).slice().sort((a, b) => playerSalary(b) - playerSalary(a))[0];
+        const buyers = G.teams.filter(t => t !== m && t.roster.length < 26);
+        const b = buyers.length ? choice(buyers) : null;
+        m.roster.splice(m.roster.indexOf(p), 1); if (b) { b.roster.push(p); b.money -= p.value; }
+        m.money += p.value;
+        d.logs.push(L(`🏦 借金が膨らんだため、理事会が ${p.name} を${b ? ` ${b.name} へ` : ""}売却しました（+${yen(p.value)}）`, "bad"));
+      }
     }
     d.window = [1, 7, 8].includes(month());
     if (d.window) {
@@ -3990,6 +4279,13 @@ function startDayEffects() {
 function endDay(carry = []) {
   const logs = [...carry, ...scoutTick(), ...sponsorTick()];
   for (const t of G.teams) { const rec = medRecover(t); for (const p of t.roster) if (p.injury_days > 0) { p.injury_days -= 1; if (p.injury_days > 0 && rnd() < rec) p.injury_days -= 1; } }
+  // 他クラブも平日は練習で体力を使い、金曜（試合の前日）は休ませる。疲れている選手は休ませる
+  { const wd0 = weekday(D(G.date));
+    if (wd0 <= 4) for (const t of G.teams) if (t !== me()) for (const p of t.roster) {
+      if (p.retired || p.injury_days > 0) continue;
+      if (wd0 === 4 || p.condition < 70) p.condition = Math.min(100, p.condition + 15);
+      else p.condition = Math.max(0, p.condition - Math.round(AI_TRAIN_COND * (p.skill === "鉄人" ? .6 : 1)));
+    } }
   const wasSunday = weekday(D(G.date)) === 6;
   G.date = addDays(G.date, 1);
   logs.push(...legendMarketTick());
@@ -4118,7 +4414,7 @@ function playerRow(p, { act = "", idx = 0, right = "", team = "", cls = "" } = {
   const ovr = getOvr(p), inj = p.injury_days > 0, cond = Math.max(0, Math.min(100, p.condition));
   return `<button class="prow${inj ? " inj" : ""}${cls ? " " + cls : ""}" ${act ? `data-act="${act}" data-arg="${idx}"` : "disabled"}>
     <span class="pos pos-${p.pos}">${p.pos}</span>
-    <span class="pmain"><span class="pname">${h(p.name)}</span>${team ? `<span class="pteam">${team}</span>` : ""}<span class="psub">${p.legend ? `<em class="legend">レジェンド</em> · ` : ""}${p.reborn != null ? `<em class="legend">🔁転生</em> · ` : ""}${p.age}歳${p.height ? ` · ${p.height}cm` : ""}${p.nat ? ` · ${h(natName(p))}` : ""}${p.skill ? ` · <em class="${p.is_rare ? "rare" : "skill"}">${h(p.skill)}</em>` : ""}${inj ? ` · <em class="bad">負傷 ${p.injury_days}日</em>` : ""}</span></span>
+    <span class="pmain"><span class="pname">${h(p.name)}</span>${team ? `<span class="pteam">${team}</span>` : ""}<span class="psub">${p.legend ? `<em class="legend">レジェンド</em> · ` : ""}${p.reborn != null ? `<em class="legend">🔁転生</em> · ` : ""}${p.age}歳${p.height ? ` · ${p.height}cm` : ""}${p.nat ? ` · ${h(natName(p))}` : ""}${p.skill ? ` · <em class="${p.is_rare ? "rare" : "skill"}">${h(p.skill)}</em>` : ""}${inj ? ` · <em class="bad">負傷 ${p.injury_days}日</em>` : ""}${p.susp > 0 ? ` · <em class="bad">出場停止 ${p.susp}試合</em>` : ""}</span></span>
     <span class="povr ${ovrClass(ovr)}">${ovr}</span>
     <span class="ppot ${potClass(p.potential)}">${potRank(p.potential)}</span>
     ${right || `<span class="pcond"><i class="${cond < 50 ? "low" : ""}" style="width:${cond}%"></i><b>${cond}</b></span>`}
@@ -4637,7 +4933,7 @@ const SHEETS = {
         ${p.reborn != null ? `<div class="legendbox"><b>🔁 転生</b><span>引退したかつての選手が、若者として生まれ変わった姿。${p.age <= 25 ? `ふつうの選手より速く成長し、25歳ごろまでに総合${peakOf(p)._ovr}前後まで伸びる見込みです（生まれ変わるたびに、元の選手より強くなることも弱く終わることもあります）。` : "全盛期の力を持っています。"}</span></div>` : ""}
         ${p.skill ? `<div class="skillbox ${p.is_rare ? "rare" : ""}"><b>【${h(p.skill)}】</b><span>${h(PLAYER_SKILLS[p.skill] || "")}</span></div>` : ""}
         <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>市場価値</dt><dd>${yen(p.value)}</dd><dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
-        <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : "良好"}</dd>
+        <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days || p.susp > 0 ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : p.susp > 0 ? `出場停止（あと${p.susp}試合）` : "良好"}</dd>
         <dt>今季</dt><dd>リーグ ${p.league_goals}点${p.league_assists || 0}A · カップ ${p.cup_goals}点${p.cup_assists || 0}A</dd>
         <dt>通算</dt><dd>${p.career_apps || 0}試合 / ${(p.career_league_goals || 0) + (p.career_cup_goals || 0)}得点 / ${p.career_assists || 0}アシスト</dd></dl>
         ${bars("フィジカル", SKILLS_PHYSICAL)}${bars("技術", SKILLS_TECHNICAL)}${bars("メンタル", SKILLS_MENTAL)}
@@ -4698,7 +4994,8 @@ const SHEETS = {
       if (s.result) return { title: "個別特訓", body: `<div class="pd-top"><span class="pos pos-${p.pos} lg">${p.pos}</span><div class="pd-id"><b>${h(p.name)}</b><small>総合 ${getOvr(p)}</small></div></div>${logList(s.result)}<button class="btn primary wide" data-act="int-finish">次の日へ</button>` };
       const ok = p.condition >= 50;
       return { title: "個別特訓", body: `<div class="pd-top"><span class="pos pos-${p.pos} lg">${p.pos}</span><div class="pd-id"><b>${h(p.name)}</b><small>${p.age}歳 · 体力 ${p.condition}%</small></div><div class="pd-ovr ${ovrClass(getOvr(p))}"><small>総合</small>${getOvr(p)}</div></div>
-        <p>体力 -45・疲労 +25 と引き換えに、1〜3項目の能力が1〜3ずつ上がります。スキル未所持なら5%で覚醒。3%でオーバーワークによる負傷のリスクがあります。</p>
+        <p>体力 -45・疲労 +25 と引き換えに、1〜3項目の能力が上がります（23歳以下はよく伸び、30歳を過ぎると伸びにくくなります）。スキル未所持ならまれに覚醒（${(INT_SKILL(p) * (intRecent(p) ? 50 : 100)).toFixed(1)}%）。3%でオーバーワークによる負傷のリスクがあります。</p>
+        ${intRecent(p) ? `<p class="bad small">前回の特訓から1週間たっていないため、効果は半分になります。</p>` : ""}
         ${ok ? `<button class="btn primary wide" data-act="int-go">この選手を強化指定する</button>` : `<p class="bad">体力が足りません（必要: 50以上）。休養させてください。</p>`}
         <button class="btn ghost wide" data-act="int-back">選び直す</button>` };
     }
@@ -5016,14 +5313,14 @@ SHEETS.sponsor = s => {
     <div class="splist">${m.sp_cands.map((x, i) => `<div class="sprow"><div><b>${h(x.name)}</b><small>${SP_TYPES[x.type].name} · ${x.weeks}週契約 · 合計${yen(x.weekly * x.weeks)}</small></div><span class="good">週${yen(x.weekly)}</span><button class="btn primary sm" data-act="sp-sign" data-arg="${i}" ${full ? "disabled" : ""}>契約</button></div>`).join("")}</div>
     <button class="btn ghost wide dangertxt" data-act="sp-discard">候補をすべて断る</button>${cur}` };
   return { title: "スポンサー探し", body: `<p>予算: <b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b></p>
-    <div class="splist">${Object.entries(SP_TYPES).map(([k, t]) => `<button class="act ${s.confirm === k ? "on" : ""}" data-act="sp-ask" data-arg="${k}" ${m.money < t.cost ? "disabled" : ""}><b>${t.name}</b><small>費用 ${yen(t.cost)} · ${t.days}日 · 週${yen(t.min)}〜${yen(t.max)}</small></button>`).join("")}</div>
+    <div class="splist">${Object.entries(SP_TYPES).map(([k, t]) => `<button class="act ${s.confirm === k ? "on" : ""}" data-act="sp-ask" data-arg="${k}" ${m.money < t.cost && k !== "local" ? "disabled" : ""}><b>${t.name}</b><small>費用 ${yen(t.cost)} · ${t.days}日 · 週${yen(t.min)}〜${yen(t.max)}</small></button>`).join("")}</div>
     ${s.confirm ? `<div class="confirm"><p>${SP_TYPES[s.confirm].name}を探しますか？（${yen(SP_TYPES[s.confirm].cost)}・${SP_TYPES[s.confirm].days}日）</p><div class="row2"><button class="btn ghost" data-act="sp-ask" data-arg="">やめる</button><button class="btn primary" data-act="sp-go" data-arg="${s.confirm}">探しに行く</button></div></div>` : ""}
-    <p class="muted small">金額は1部リーグの目安です。2部は0.6倍、探し終えた時点の順位が4位以内なら1.2倍、下位3チームなら0.8倍になります。</p>${cur}` };
+    <p class="muted small">地元企業は資金が足りなくても探せます（費用は借金になります）。金額は1部リーグの目安です。2部は0.6倍、探し終えた時点の順位が4位以内なら1.2倍、下位3チームなら0.8倍になります。</p>${cur}` };
 };
 Object.assign(ACTIONS, {
   "sp-ask"(k) { topSheet().confirm = k || null; renderSheet(); },
   "sp-go"(k) {
-    const m = me(), t = SP_TYPES[k]; if (!t || m.money < t.cost) { toast("資金が足りません", "bad"); return; }
+    const m = me(), t = SP_TYPES[k]; if (!t || (m.money < t.cost && k !== "local")) { toast("資金が足りません", "bad"); return; }   // 地元企業は資金が足りなくても探せる（費用は借金に）
     m.money -= t.cost; m.sp_status = "SEARCHING"; m.sp_timer = t.days; m.sp_type = k;
     persist(); closeSheet(); render(); toast(`${t.name}のスポンサー探しを始めました`);
   },
@@ -5052,7 +5349,7 @@ const ROLE_KEY = {
 };
 const roleFit = (p, role) => (p.pos === role ? 1000 : 0) + (ROLE_KEY[role] ? ROLE_KEY[role](p) : getOvr(p));
 const myTac = () => { const m = me(); m.tactics = m.tactics || { style: "balance", line: "mid" }; return m.tactics; };
-const usable = p => p && !p.retired && !(p.injury_days > 0);
+const usable = p => p && !p.retired && !(p.injury_days > 0) && !(p.susp > 0);
 
 // 今の設定から11人を並べる（けが人や移籍でいなくなった選手は、その位置に合う選手で自動的に埋める）
 function myLineup() {
