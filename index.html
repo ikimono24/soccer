@@ -2215,6 +2215,7 @@ function teamStats(s) {
 // 画面用に { t: "act", kind, ... } の構造化イベントを出す（verbose のときだけ）。結果の計算は verbose に関係なく同じ。
 
 const TUNE2 = {
+  pickGap: 12, pickWPow: .6,
   offPos: .1,
   anaB: 1.2,
   markK: .5, markF: 5, finCap: 80, finSoft: .35, layK: .5, layMax: .8, skMonster: 10,   // 怪物：+25だとシーズン60点を超えるため+10に   // マークの集中・決定力の効き方（得点が1人に偏りすぎないように）
@@ -2446,9 +2447,12 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   const SHC = new Map(), markW = p => Math.pow(TUNE2.markK, SHC.get(p) || 0);
   const nearPick = (cands, sd, att, tx, ty, sig = 16, w = null) => {
     cands = cands.filter(Boolean); if (!cands.length) return null;
-    const ws = cands.map(p => { const [x, y] = posL(p, sd, att); const d2 = ((x - tx) * 105) ** 2 + ((y - ty) * 68) ** 2; const sg = sig * (TUNE2.sigMul || 1); return Math.exp(-d2 / (2 * sg * sg)) * (w ? Math.max(.05, w(p)) : 1) * (att ? markW(p) : 1) + 1e-9; });
+    // 近くにいる選手が反応する：いちばん近い選手より pickGap(m) 以上遠い選手はほぼ選ばない。能力の重みは弱めにかける
+    const ds = cands.map(p => { const [x, y] = posL(p, sd, att); return Math.hypot((x - tx) * 105, (y - ty) * 68); }), dmin = Math.min(...ds);
+    const ws = cands.map((p, k) => { const sg = sig * (TUNE2.sigMul || 1); return Math.exp(-(ds[k] ** 2) / (2 * sg * sg)) * (w ? Math.pow(Math.max(.05, w(p)), TUNE2.pickWPow) : 1) * (att ? markW(p) : 1) * (ds[k] > dmin + TUNE2.pickGap ? .02 : 1) + 1e-9; });
     let r = rnd() * ws.reduce((a, b) => a + b, 0), i = 0;
     for (; i < ws.length - 1; i++) { r -= ws[i]; if (r <= 0) break; }
+    if (TUNE2.__pk) { const d = p => { const [x, y] = posL(p, sd, att); return Math.hypot((x - tx) * 105, (y - ty) * 68); }; TUNE2.__pk(new Error().stack.split("\n")[2].match(/:(\d+):\d+\)?$/)?.[1], d(cands[i]), Math.min(...cands.map(d)), cands.length); }   // テスト用
     return cands[i];
   };
 
@@ -3897,6 +3901,11 @@ const ACTS = {
     let t = 0;
     if (e.type === "pk" || e.type === "fk") t = 0;
     else t = ensureBall(s);
+    // 遠すぎる位置から打たないように、シュートの地点（ペナルティエリア付近）まで持ち上がってから打つ
+    if (e.type === "shot" || e.type === "thru") {
+      const want = e.spot === "box" ? .84 : .75, [lx, ly] = toL(A, s.x, s.y);
+      if (lx < want - .05) { const run = Math.min(.9, (want - lx) * 2.6); at(t, () => putL(s, A, want, clamp(ly, .3, .7))); t += run; }
+    }
     const gy = .5 + (Math.random() - .5) * .08;
     const dur = e.type === "fk" ? .75 : e.type === "pk" ? .38 : e.type === "header" ? .45 : .42;
     const arc = e.type === "fk" ? .08 : .02;
@@ -4372,19 +4381,34 @@ function draw() {
 // ---------- 選手の動き ----------
 // 速度と加速度を持たせて走らせる（向きや速さが急に変わらない）。単位はメートル（ピッチ105m×68m）、時間は試合内の秒
 const LXM = 105, LYM = 68;
+const MV = { act: 14, norm: 9.5, accA: 30, accN: 18, gap: 2.4 };   // 最高速度（m/秒）・加速度・味方どうしの最低間隔（m）
 function steer(m, gx, gy, dt) {
   if (m.tx == null) { m.tx = gx; m.ty = gy; m.vx = m.vx || 0; m.vy = m.vy || 0; }
   // 目標地点そのものもなめらかに動かす（目標が急に飛んでも動きはなめらか）
   const ks = Math.min(1, dt * (m.ov ? 9 : 4));
   m.tx += (gx - m.tx) * ks; m.ty += (gy - m.ty) * ks;
   const dx = (m.tx - m.x) * LXM, dy = (m.ty - m.y) * LYM, d = Math.hypot(dx, dy);
-  const vmax = m.ov ? 24 : 15, slow = m.ov ? 6 : 8, amax = m.ov ? 48 : 30;
+  const vmax = m.ov && S.phase !== "set" ? MV.act : MV.norm, slow = m.ov ? 5 : 7, amax = m.ov ? MV.accA : MV.accN;   // 人が走る速さに近づける
   let wx = 0, wy = 0;
   if (d > .03) { const sp = vmax * Math.min(1, d / slow); wx = dx / d * sp; wy = dy / d * sp; }
   let ax = wx - m.vx, ay = wy - m.vy; const al = Math.hypot(ax, ay), lim = amax * dt;
   if (al > lim) { ax *= lim / al; ay *= lim / al; }
   m.vx += ax; m.vy += ay;
   m.x += m.vx * dt / LXM; m.y += m.vy * dt / LYM;
+}
+// 味方どうしが重ならないように少し離す。ピッチの外にも出ないようにする
+function separate() {
+  for (const side of ["home", "away"]) {
+    const ms = S.teams[side].markers;
+    for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) {
+      const a = ms[i], b = ms[j], dx = (b.x - a.x) * LXM, dy = (b.y - a.y) * LYM, d = Math.hypot(dx, dy);
+      if (d >= MV.gap || d < 1e-6) continue;
+      const push = (MV.gap - d) * .25, ux = dx / d, uy = dy / d;
+      const wa = S.ball.holder === a ? 0 : b === S.ball.holder ? 1 : .5, wb = 1 - wa;   // ボールを持っている選手は動かさない
+      a.x -= ux * push * wa * 2 / LXM; a.y -= uy * push * wa * 2 / LYM; b.x += ux * push * wb * 2 / LXM; b.y += uy * push * wb * 2 / LYM;
+    }
+  }
+  for (const side of ["home", "away"]) for (const m of S.teams[side].markers) { m.x = clamp(m.x, -.004, 1.004); m.y = clamp(m.y, -.004, 1.004); }
 }
 const placeAll = () => { for (const side of ["home", "away"]) for (const m of S.teams[side].markers) { const [x, y] = target(m); m.x = m.tx = x; m.y = m.ty = y; m.vx = m.vy = 0; } };
 
@@ -4408,8 +4432,10 @@ function frame(ts) {
       const [tx, ty] = target(m);
       const wob = S.phase === "play" && !m.ov ? .006 : 0;
       const gx = tx + Math.sin(S.simT * .8 + m.seed) * wob, gy = ty + Math.cos(S.simT * .6 + m.seed) * wob;
-      steer(m, gx, gy, sdt);
+      const n = Math.max(1, Math.ceil(sdt / .04));   // 1フレームの時間が長いときは細かく分けて動かす（瞬間移動を防ぐ）
+      for (let k = 0; k < n; k++) steer(m, gx, gy, sdt / n);
     }
+    separate();
     updateBall();
     if (S.poss && (S.phase === "play" || S.phase === "set")) S.possT[S.poss] = (S.possT[S.poss] || 0) + sdt;
     if (S.simT - (S.statT || 0) > 1) { S.statT = S.simT; renderLiveStats(); }
