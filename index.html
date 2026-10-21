@@ -1047,6 +1047,16 @@ function genPos2(pos) {
   return pos === "DF" ? "MF" : pos === "FW" ? "MF" : rnd() < .5 ? "FW" : "DF";
 }
 const canPlay = (p, role) => p.pos === role || (!!p.pos2 && p.pos2 === role);
+// 市場価値：総合値が5上がるごとに約2倍（総合70で約1万円・80で4万円・90で16万円）
+//  若手は伸びしろの一部を上乗せ、28歳を過ぎると下がる。スキル持ちは少し高い
+function calcValue(p) {
+  const ovr = getOvr(p), pot = Math.min(99, parseInt(p.potential) || ovr), a = parseInt(p.age) || 20;
+  const w = a <= 18 ? .5 : a <= 21 ? .4 : a <= 23 ? .25 : 0;
+  const eff = ovr + Math.max(0, pot - ovr) * w;
+  const ageF = a <= 27 ? 1 : a === 28 ? .9 : a === 29 ? .8 : a === 30 ? .65 : a === 31 ? .5 : Math.max(.1, .4 - (a - 32) * .08);
+  const sk = p.skill ? (p.is_rare ? 1.5 : 1.15) : 1;
+  return Math.max(500, Math.round(40000 * Math.pow(2, (eff - 80) / 5) * ageF * sk / 100) * 100);
+}
 function createPlayer({ age = null, pos = null, quality = "normal", fixed = null, target = 0, country = null, nat = null } = {}) {
   let p;
   if (fixed) {
@@ -1088,21 +1098,7 @@ function createPlayer({ age = null, pos = null, quality = "normal", fixed = null
     }
   }
   if (!fixed && typeof goldenBoost === "function") goldenBoost(p);
-  // 市場価値
-  const ovr = getOvr(p);
-  const pot = parseInt(p.potential) || 70;
-  const a = parseInt(p.age) || 20;
-  const baseVal = Math.pow(ovr * 1.2, 2.2) * 0.1;   // 価格は元の総合値の目盛り（約1.2倍）で計算して相場を保つ
-  const potFactor = Math.pow(pot / 75, 1.5);
-  let ageFactor;
-  if (a <= 18) ageFactor = 0.4;
-  else if (a <= 21) ageFactor = 0.7;
-  else if (a <= 24) ageFactor = 1.2;
-  else if (a <= 28) ageFactor = 1.0;
-  else ageFactor = Math.max(0.1, 1.0 - (a - 28) * 0.1);
-  let skillPremium = 1.0;
-  if (p.skill) skillPremium = p.is_rare ? 2.5 : 1.4;
-  p.value = Math.max(1000, Math.trunc(baseVal * potFactor * ageFactor * skillPremium * 15));
+  p.value = calcValue(p);
   p.league_goals = parseInt(p.league_goals) || 0;
   p.cup_goals = parseInt(p.cup_goals) || 0;
   p.injury_days = parseInt(p.injury_days) || 0;
@@ -2064,7 +2060,7 @@ function simulateRivalManagement() {
           np.pk = fictionalPeak(team, np.pos); fitOvr(np, np.pk); np.potential = Math.max(np.potential, Math.min(99, np.pk + 2));
         }
         team.roster.push(np);
-        team.money -= rb ? 5000 : 15000;
+        team.money -= Math.max(0, Math.min(team.money - 20000, Math.round(np.value * (rb ? .3 : .8))));   // 補強費は相場に合わせる
       }
     }
   }
@@ -3231,6 +3227,7 @@ function seasonRollover(y) {
       if (p.retired) continue;
       p.age += 1;
       p.fatigue = 0;
+      p.value = Math.round(calcValue(p) * (p.legend ? 1.3 : 1));   // 年齢・能力に合わせて市場価値を付け直す
       p.injury_days = Math.max(0, (parseInt(p.injury_days) || 0) - 60);
       if (rnd() < 0.01) {
         const ch = randint(-5, 5);
@@ -4811,7 +4808,7 @@ function startDayEffects() {
         m.boardWait = 4;   // 売却は4週に1人まで
         const vets = act.filter(p => p.age >= 28);
         const p = (vets.length ? vets : act).slice().sort((a, b) => playerSalary(b) - playerSalary(a))[0];
-        const buyers = G.teams.filter(t => t !== m && t.roster.length < 26);
+        const buyers = G.teams.filter(t => t !== m && t.roster.length < 26 && t.money >= p.value);
         const b = buyers.length ? choice(buyers) : null;
         leaveClub(p, m, "売却"); m.roster.splice(m.roster.indexOf(p), 1); if (b) { b.roster.push(p); b.money -= p.value; }
         m.money += p.value;
@@ -6622,7 +6619,8 @@ function worldEvents(logs) {
       const [p, from] = choice(cands) || [];
       const to = ai.filter(t => t !== from && t.roster.length < 28).sort((a, b) => b.money - a.money)[0];
       if (!p || !to) continue;
-      const fee = Math.trunc(p.value * uniform(2.2, 3));
+      const fee = Math.trunc(Math.min(p.value * uniform(2.2, 3), to.money * .9));   // 払える範囲で
+      if (fee < p.value * 1.5) continue;
       from.roster.splice(from.roster.indexOf(p), 1); to.roster.push(p); to.money -= fee; from.money += fee;
       G.news.unshift({ date: G.date, name: p.name, pos: p.pos, age: p.age, ovr: getOvr(p), from: from.name, to: to.name, fee, rec: 1 });
       out.push(`💥【記録的移籍】${p.name} が ${from.name} から ${to.name} へ、史上最高額 ${yen(fee)} で移籍しました！`);
@@ -7594,7 +7592,7 @@ function hookDaily() {
     G.h2hPrev = G.h2h || {}; G.h2h = {}; G.clinch = { y: G.season_year }; G.hh = null; G.recNote = {};
   }
   if (!G.rival || G.rival.y !== G.season_year || G.rival.club !== m.name) pickRival();
-  if (G.day.phase === "sunday") { trackClubs(); marqueeWeekly(); headhuntWeekly(); }
+  if (G.day.phase === "sunday") { trackClubs(); marqueeWeekly(); headhuntWeekly(); revalue(); }
   weeklyGoalsInit(); marqueeInit(); watchRoster();
 }
 
@@ -7982,6 +7980,13 @@ function bigBuyer(from, fee, { minUp = 0, abroad = false, minMoney = 0 } = {}) {
   const c = G.teams.filter(b => b !== from && b !== m && b.division === 1 && b.roster.length < 26 && b.money > Math.max(minMoney, fee) && (!abroad || b.country !== from.country) && clubLevel(b) >= base + minUp);
   if (!c.length) return null;
   return weighted(c.map(b => [b, Math.pow(Math.max(1, clubLevel(b) - base + 4), 2) * (1 + b.money / 400000)]));
+}
+
+// 市場価値を毎週付け直す（成長・衰えを反映）。財政破綻したクラブの投げ売り中は据え置き
+function revalue() {
+  const fs = G.fireSale && G.fireSale.until >= G.season_year ? G.fireSale.idx : -1;
+  G.teams.forEach((t, i) => { if (i === fs) return; for (const p of t.roster) if (!p.retired) p.value = Math.round(calcValue(p) * (p.legend ? 1.3 : 1)); });
+  for (const p of G.freeAgents || []) p.value = Math.round(calcValue(p) * (p.legend ? 1.3 : 1));
 }
 
 </script>
