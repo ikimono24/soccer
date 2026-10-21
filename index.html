@@ -752,6 +752,14 @@ table.mini tr.up td:first-child { font-weight: 700; }
 .timeline .evs { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; color: var(--muted); grid-column: 2; }
 .timeline .evs li { padding: 1px 0; }
 .hof li .btn.sm, .hof li .chip { align-self: center; margin-left: auto; white-space: nowrap; }
+.infobar { margin: 0 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.infobar > summary { padding: 9px 12px; font-size: 13.5px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.infobar > summary::-webkit-details-marker { display: none; }
+.infobar > summary::after { content: "▾"; margin-left: auto; color: var(--muted); }
+.infobar[open] > summary::after { content: "▴"; }
+.infobar.hot { border-color: var(--good); }
+.infobar.hot > summary { color: var(--good); font-weight: 700; }
+.infobar > .card { margin: 0 8px 8px; }
 
 </style>
 </head>
@@ -4984,7 +4992,7 @@ function renderPick() {
 
 function renderHome() {
   const d = G.day, m = me();
-  const feed = feedCard(d.logs, d.phase === "sunday");
+  const feed = feedCard(d.logs, d.phase === "sunday") + (typeof infoBar === "function" ? infoBar() : "");
   if (d.phase === "season_end") return renderSeasonEnd();
   if (G.fired) return firedCard();
   const wk = weekStrip() + (d.phase !== "season_end" ? `<button class="autobtn" data-act="sheet" data-arg="auto">⏩ おまかせで進める</button>` : "") + careerNotice();   // お知らせ（ユース候補・獲得オファーなど）はどの日にも出す
@@ -6730,7 +6738,7 @@ function careerNotice() {
 function careerNotice2() {
   const bn = bidNotice();
   const c = me().academy || [];
-  return (typeof headhuntCard === "function" ? headhuntCard() + weeklyGoalsCard() + marqueeCard() : "") + bn + (c.length ? `<section class="card notice"><h2 class="ch">🎓 ユース昇格候補（${c.length}人）</h2><p class="muted small">アカデミーから、トップチームに上げたい若手の報告が届いています。</p><button class="btn primary wide" data-act="sheet" data-arg="academy">候補を見る</button></section>` : "");
+  return (typeof headhuntCard === "function" ? headhuntCard() : "") + bn + (c.length ? `<section class="card notice"><h2 class="ch">🎓 ユース昇格候補（${c.length}人）</h2><p class="muted small">アカデミーから、トップチームに上げたい若手の報告が届いています。</p><button class="btn primary wide" data-act="sheet" data-arg="academy">候補を見る</button></section>` : "");
 }
 
 // =====================================================================
@@ -7552,7 +7560,7 @@ function weeklyGoalsCheck(f, a, st, side) {
     if (g.done) continue;
     const hit = g.t === "sc" ? gl.some(x => x[0].uid === g.arg) : ok[g.t];
     if (!hit) continue;
-    g.done = true;
+    g.done = true; G.day.wkHit = true;
     if (g.rw === "yen") { m.money += WG.yen; G.day.logs.push(L(`✅ 週の目標「${g.txt}」達成！ +${yen(WG.yen)}`, "good")); }
     else { initFans(m); const d = Math.round(m.fans * WG.fan); m.fans += d; G.day.logs.push(L(`✅ 週の目標「${g.txt}」達成！ ファン +${d.toLocaleString()}人`, "good")); }
   }
@@ -7574,6 +7582,7 @@ function marqueeInit() {
   const young = all.filter(([p]) => p.age <= 21 && (p.potential || 0) >= 90).sort((a, b) => (b[0].potential || 0) - (a[0].potential || 0)).slice(0, 15);
   const pick = [...sample(star, Math.min(2, star.length)), ...(young.length ? [choice(young)] : [])];
   G.mq = { win: wkey, list: pick.map(([p, i]) => { uidOf(p); return { uid: p.uid, name: p.name, club: G.teams[i].name, pos: p.pos, age: p.age, ovr: getOvr(p), st: "open" }; }) };
+  if (G.mq.list.length) G.day.mqHit = true;
   if (G.mq.list.length) G.day.logs.push(L(`📰 移籍市場オープン！ 今期の目玉：${G.mq.list.map(x => `${x.name}（${x.club}）`).join("、")}`, "head"));
 }
 const mqPlayer = x => { for (const t of G.teams) { const p = t.roster.find(q => q.uid === x.uid); if (p) return [p, t]; } return [null, null]; };
@@ -7590,7 +7599,7 @@ function marqueeWeekly() {
     if (!buyers.length) continue;
     const b = choice(buyers), fee = Math.round(p.value * uniform(1.2, 1.6) / 100) * 100;
     t.roster.splice(t.roster.indexOf(p), 1); b.roster.push(p); b.money -= fee; t.money += fee; p.ct = randint(2, 5);
-    x.st = "gone"; x.to = b.name;
+    x.st = "gone"; x.to = b.name; G.day.mqHit = true;
     G.day.logs.push(L(`📰 移籍速報：目玉の ${x.name} が ${t.name} から ${b.name} へ（移籍金 ${yen(fee)}）`, "head"));
   }
 }
@@ -7815,6 +7824,17 @@ function anaReport(t) {
   const lines = [["DF", "守備ライン"], ["MF", "中盤"], ["FW", "前線"]].map(([k, n]) => [n, avg(k)]).sort((a, b) => a[1] - b[1]);
   const gk = st.find(p => p.pos === "GK");
   return `<p class="opp-tac"><span>📋 分析官</span><b>相手は${lines[0][0]}が手薄（平均${Math.round(lines[0][1])}）${gk && lv >= 2 ? ` · GK ${gk.name}は${(gk.height || 185) < 185 ? "高いボールに弱い" : "反応は" + (gk.reflexes >= 80 ? "鋭い" : "並")}` : ""}</b></p>`;
+}
+
+// 週の目標と移籍市場の目玉は、1本の帯にまとめて「今日のできごと」の下に出す（タップで開く）
+function infoBar() {
+  const w = G.wk, q = G.mq, parts = [];
+  const wg = w && w.list.length ? weeklyGoalsCard() : "", mq = marqueeCard();
+  if (wg) parts.push(`📋 今週の目標 ${w.list.filter(g => g.done).length}/${w.list.length}${w.all ? "🎯" : ""}`);
+  if (mq) parts.push(`🌟 移籍の目玉 ${q.list.filter(x => x.st === "open").length}人`);
+  if (!parts.length) return "";
+  const hot = G.day.wkHit || G.day.mqHit;
+  return `<details class="infobar ${hot ? "hot" : ""}"><summary>${parts.join(" · ")}</summary>${wg}${mq}</details>`;
 }
 
 </script>
