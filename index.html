@@ -5806,6 +5806,37 @@ document.addEventListener("change", e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && T.sheets.length) closeSheet(); });
 
+// ---- スマホの「戻る」操作（Androidの戻るボタン・スワイプ／iPhoneの端からのスワイプ） ----
+// 履歴に目印を1つ積んでおき、戻る操作が来たらアプリの中で1段戻す（ページからは出ない）
+function appBack() {
+  if (typeof LiveMatch !== "undefined" && LiveMatch.isOpen()) {   // 試合中：采配画面だけ閉じる（試合からは抜けない）
+    const S = LiveMatch._s(); if (S && S.state === "menu" && S.menu && !S.menu.fromHT) LiveMatch.action("lv-mclose", "0");
+    return;
+  }
+  if (T.sheets && T.sheets.length) { closeSheet(); return; }
+  if (!T.title && T.tab && T.tab !== "home") { ACTIONS.tab("home"); return; }
+}
+(function backSetup() {
+  try {
+    history.replaceState({ base: 1 }, "");
+    history.pushState({ guard: 1 }, "");
+    window.addEventListener("popstate", e => {
+      if (e.state && e.state.guard) return;
+      appBack();
+      history.pushState({ guard: 1 }, "");
+    });
+  } catch (err) { /* 履歴が使えない環境では何もしない */ }
+  // iPhoneのホーム画面版：画面の左端から右へスワイプで戻る（Safariで開いているときは本来のスワイプに任せる）
+  if (navigator.standalone === true) {
+    let sx = null, sy = 0;
+    document.addEventListener("touchstart", e => { const t = e.touches[0]; sx = t.clientX <= 24 ? t.clientX : null; sy = t.clientY; }, { passive: true });
+    document.addEventListener("touchend", e => {
+      if (sx == null) return; const t = e.changedTouches[0], dx = t.clientX - sx, dy = Math.abs(t.clientY - sy); sx = null;
+      if (dx > 70 && dy < 60) appBack();
+    }, { passive: true });
+  }
+})();
+
 // 起動
 (function boot() {
   render();
