@@ -1612,7 +1612,19 @@ const playerSalary = p => p.wage || Math.max(30, Math.round(Math.pow(Math.max(0,
 const teamSalary = t => t.roster.filter(p => !p.retired).reduce((a, p) => a + playerSalary(p), 0);
 const FAC_UPKEEP = 60;  // 施設1つにつき (Lv-1)×60円／週
 const BRANCH_UPKEEP = 150;   // スカウト網の支部：1レベルにつき週150円
-const facUpkeep = t => { const f = t.facilities || {}; return ["medical", "training", "youth"].reduce((a, k) => a + ((f[k] || 1) - 1) * FAC_UPKEEP, 0) + Object.values(t.branches || {}).reduce((a, v) => a + v * BRANCH_UPKEEP, 0); };
+// 施設の維持費：高いレベルほど急に上がる（Lv5で週約320円、Lv10で週約1,060円。1施設あたり）
+const facUpk1 = lv => Math.round(FAC_UPKEEP * (((lv || 1) - 1) + .12 * ((lv || 1) - 1) * Math.max(0, (lv || 1) - 2)));
+// スタッフ：週給を払って雇う（自チームのみ）。等級1〜3
+const STAFF = {
+  dev: { n: "育成コーチ", d: ["23歳以下の練習の伸び +10%", "+20%", "+30%"] },
+  phys: { n: "フィジカルコーチ", d: ["ケガ -10%・疲労 -10%", "-20%", "-30%"] },
+  ana: { n: "分析官", d: ["試合前に相手の分析・シュート精度が少し上がる", "さらに上がる", "大きく上がる"] },
+  scout: { n: "スカウト部長", d: ["S・Aの才能が出やすくなる", "＋報告の候補が1人増える", "＋さらに出やすくなる"] },
+};
+const STAFF_PAY = [0, 250, 600, 1100];   // 週給（等級0〜3）
+const staffLv = (t, k) => (t && t.staff && t.staff[k]) || 0;
+const staffCost = t => (t && t.staff ? Object.values(t.staff).reduce((a, l) => a + STAFF_PAY[l || 0], 0) : 0);
+const facUpkeep = t => { const f = t.facilities || {}; return ["medical", "training", "youth"].reduce((a, k) => a + facUpk1(f[k]), 0) + Object.values(t.branches || {}).reduce((a, v) => a + v * BRANCH_UPKEEP, 0); };
 // 他クラブには毎週、給与と維持費をまかなえるだけの収入＋少しの上乗せが入る（試合の報酬・賞金で差がつく）
 const aiWeeklyIncome = t => teamSalary(t) + facUpkeep(t) + (t.division === 1 ? 400 : 200);
 const AI_RICH = 200000;   // これより多く持っているクラブは、毎週1%を設備投資などに使う（資金が増え続けないように）
@@ -1936,16 +1948,16 @@ function teamTraining(team, kind) {
     if (p.retired || p.injury_days > 0) continue;
     const tired = p.condition < 30;
     // ケガ：強度が高いほど、疲れているほど起きやすい（医療施設で軽減）
-    let ir = it.inj * (tired ? 2.2 : 1) * (p.skill === "鉄人" ? .3 : 1) * medInjury(med);
+    let ir = it.inj * (tired ? 2.2 : 1) * (p.skill === "鉄人" ? .3 : 1) * medInjury(med) * (1 - .1 * staffLv(team, "phys"));
     if (rnd() < ir) { p.injury_days = randint(3, kind === "hard" ? 24 : 14); hurt.push(p); }
     p.condition = Math.max(0, p.condition - Math.round(it.cond * (p.skill === "鉄人" ? .6 : 1)));   // 鉄人は疲れにくい
-    p.fatigue = (p.fatigue || 0) + it.fat;
+    p.fatigue = (p.fatigue || 0) + Math.round(it.fat * (1 - .1 * staffLv(team, "phys")));
     if (p.injury_days > 0) continue;
     // 若手レジェンドは全盛期の姿に向かって伸びる（育成方針は使わない）
     if (p.legend || p.reborn != null) { const r = legendGrowth(p, .1 * it.xp * (tired ? .4 : 1) * (mentor && p.age <= 21 ? MENTOR_MUL : 1)); if (r) logs0.push(r); continue; }
     const s = nextFocusSkill(p);
     if (!s) { maxed.push(p); continue; }
-    const gain = TRAIN_BASE_XP * it.xp * ageXp(p.age) * gymXp(gym) * (tired ? .4 : 1) * (.8 + rnd() * .4) * (mentor && p.age <= 21 ? MENTOR_MUL : 1) * (typeof perXp === "function" ? perXp(p) : 1);
+    const gain = TRAIN_BASE_XP * it.xp * ageXp(p.age) * gymXp(gym) * (tired ? .4 : 1) * (.8 + rnd() * .4) * (mentor && p.age <= 21 ? MENTOR_MUL : 1) * (typeof perXp === "function" ? perXp(p) : 1) * (p.age <= 23 ? 1 + .1 * staffLv(team, "dev") : 1);
     p.txp = (p.txp || 0) + gain;
     while (p.txp >= 100) {
       p.txp -= 100;
@@ -2155,6 +2167,8 @@ function teamStats(s) {
 // 画面用に { t: "act", kind, ... } の構造化イベントを出す（verbose のときだけ）。結果の計算は verbose に関係なく同じ。
 
 const TUNE2 = {
+  anaB: 1.2,
+  markK: .5, markF: 5, finCap: 80, finSoft: .35, layK: .5, layMax: .8, skMonster: 10,   // 怪物：+25だとシーズン60点を超えるため+10に   // マークの集中・決定力の効き方（得点が1人に偏りすぎないように）
   // 調整済み（8000試合）：平均得点 約2.7、ホーム勝 44%・引分 25%・アウェー勝 31%、0-0 約5%
   // スタッツ（細かいプレー込み）：シュート 約25本・枠内率 約35%・CK 約10・ファウル 約22・警告 約3.5・退場 約0.17／試合
   // 得点者 FW 66%・MF 28%・DF 5%、アシスト付き 約76%
@@ -2163,7 +2177,7 @@ const TUNE2 = {
   dribRand: 80, dribThr: 28,    // ドリブル突破
   thruRand: 80, thruThr: 44,    // スルーパス
   crossRand: 80, crossThr: 34,  // クロス
-  shotBonus: -22, headBonus: -25, fkBonus: -34, pkBonus: -4,
+  shotBonus: -19.8, headBonus: -25, fkBonus: -34, pkBonus: -4,
   foulRate: .9, pkShare: .36, cornerFromSave: .5, cornerFromBlock: .65, cornerFromClear: .45,
   // 身長の効果：空中戦（1cmあたり）、ヘディングシュート、GKのリーチ、小柄な選手のドリブル
   airH: .9, headH: .4, agiH: .35, agiDiff: .15,
@@ -2185,7 +2199,7 @@ const TUNE2 = {
   condK: 400, condFrom: 75,     // 体力：75%を下回ると能力が下がる（50%で約-6%、30%で約-11%）
   tireK: .0018,                 // 後半の疲れ：スタミナが低いほど、終盤ほど能力が下がる
   pressK: .6,                   // 守備側のプレス（運動量・タックル）が主導権争いに効く強さ
-  finW: .78, gkW: .55, gkBase: 62,          // シュートの決定力・GKの能力が結果に効く強さ（平均65からの差に掛ける）
+  finW: .8, gkW: .55, gkBase: 62,          // シュートの決定力・GKの能力が結果に効く強さ（平均65からの差に掛ける）
   shotDefW: .35,                // シュートのとき、近くのDFの守備力が質を下げる強さ
   dribBonus: 10,                // ドリブルで抜き切ったあとのシュートの有利
   rebHand: .012,                // GKのキャッチ1あたり、こぼれ球になりにくくなる割合
@@ -2378,9 +2392,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     return [cl(lx, .05, .9), cl(ly, .04, .96)];
   };
   // ある地点（sd チームの座標）に近い選手ほど選ばれやすい。w は能力による重み
+  // マークの集中：同じ試合で何本もシュートを打った選手は、守備が警戒して次にボールが回りにくい
+  const SHC = new Map(), markW = p => Math.pow(TUNE2.markK, SHC.get(p) || 0);
   const nearPick = (cands, sd, att, tx, ty, sig = 16, w = null) => {
     cands = cands.filter(Boolean); if (!cands.length) return null;
-    const ws = cands.map(p => { const [x, y] = posL(p, sd, att); const d2 = ((x - tx) * 105) ** 2 + ((y - ty) * 68) ** 2; const sg = sig * (TUNE2.sigMul || 1); return Math.exp(-d2 / (2 * sg * sg)) * (w ? Math.max(.05, w(p)) : 1) + 1e-9; });
+    const ws = cands.map(p => { const [x, y] = posL(p, sd, att); const d2 = ((x - tx) * 105) ** 2 + ((y - ty) * 68) ** 2; const sg = sig * (TUNE2.sigMul || 1); return Math.exp(-d2 / (2 * sg * sg)) * (w ? Math.max(.05, w(p)) : 1) * (att ? markW(p) : 1) + 1e-9; });
     let r = rnd() * ws.reduce((a, b) => a + b, 0), i = 0;
     for (; i < ws.length - 1; i++) { r -= ws[i]; if (r <= 0) break; }
     return cands[i];
@@ -2475,8 +2491,10 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       else if (kind === "fk") q = V(striker, "passing") * 0.4 + V(striker, "finishing") * 0.3 + V(striker, "composure") * 0.3;
       else if (kind === "pk") q = V(striker, "finishing") * 0.4 + V(striker, "composure") * 0.6;
       else q = V(striker, "finishing") * 0.7 + V(striker, "composure") * 0.3;
+      if (q > TUNE2.finCap) q = TUNE2.finCap + (q - TUNE2.finCap) * TUNE2.finSoft;   // 80を超えた分は効きを弱める（極端な得点数を防ぐ）
+      if (kind !== "pk") bonus -= TUNE2.markF * (SHC.get(striker) || 0);   // 何本も打った選手には守備が寄せてくる
       const kb = { header: TUNE2.headBonus + (HT(striker) - 181) * TUNE2.headH, fk: TUNE2.fkBonus, pk: TUNE2.pkBonus }[kind] ?? TUNE2.shotBonus;
-      let atkF = 65 + (q - 65) * TUNE2.finW + randint(0, 40) + kb + bonus;
+      let atkF = 65 + (q - 65) * TUNE2.finW + randint(0, 40) + kb + bonus + (playerTeam && atkTeam === playerTeam ? TUNE2.anaB * staffLv(playerTeam, "ana") : 0);   // 分析官
       if (kind === "fk" && sk(striker, "フリーキッカー")) { atkF += TUNE2.skFK; extra.push([`🎯 フリーキッカー ${striker.name} の精密なキック！`, "skill", striker]); }
       if (kind === "shot" && spot === "edge" && sk(striker, "大砲")) { atkF += TUNE2.skCannon; extra.push([`💥『大砲』${striker.name} の強烈なミドル！`, "skill", striker]); }
       if (kind !== "pk" && min >= 75 && sk(striker, "クラッチ")) { atkF += TUNE2.skClutch; extra.push([`⏱️『クラッチ』${striker.name} が勝負どころで集中力を高める！`, "skill", striker]); }
@@ -2502,7 +2520,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       if (striker.skill === "エースストライカー") { atkF += 10; extra.push([`★ ${striker.name} の『エースストライカー』が発動！`, "skill", striker]); }
       if (superSub(striker)) { atkF += 10; extra.push([`★ スーパーサブ ${striker.name} が躍動している！`, "skill", striker]); }
       if (gk.skill === "守護神") { defF += TUNE2.skGK; extra.push([`★ GK ${gk.name} の『守護神』が発動！`, "info", gk]); }
-      if (striker.skill === "【極】怪物") { atkF += 25; extra.push([`🔥『怪物』${striker.name} の異次元なシュート！`, "rare", striker]); }
+      if (striker.skill === "【極】怪物") { atkF += TUNE2.skMonster; extra.push([`🔥『怪物』${striker.name} の異次元なシュート！`, "rare", striker]); }
       if (gk.skill === "【極】神の手") { defF += TUNE2.skGKr; extra.push([`🧤 ${gk.name} の『神の手』！物理法則を超えた反射神経！`, "rare", gk]); }
       let res;
       if (atkF > defF) res = "goal";
@@ -2531,8 +2549,18 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     // シュート → 結果 → 続くセットプレー（CK・ゴールキック）まで
     let reb = false;
     function* finish(striker, kind, assister, spot, bonus = 0) {
+      // マークが厳しい選手は、近くの味方に落として打たせることがある（1人に得点が偏りすぎないように）
+      const k0 = SHC.get(striker) || 0;
+      if (kind !== "pk" && kind !== "fk" && k0 && rnd() < Math.min(TUNE2.layMax, TUNE2.layK * k0)) {
+        const alt = nearPick(role(A, "MF", "FW").filter(p => p !== striker), side, true, .8, .5, 18);
+        if (alt) {
+          if (verbose) yield { ...ev(min, `${striker.name} に厳しいマーク！ ${alt.name} に落とす`, "", 500), who: striker };
+          assister = striker; striker = alt; kind = "shot"; spot = "edge";
+        }
+      }
       if (ST) ST.shot++;
       const { res, extra } = shotRoll(striker, kind, spot, bonus);
+      SHC.set(striker, (SHC.get(striker) || 0) + 1);
       MS[side].sh++; if (res === "goal" || res === "save") MS[side].on++;
       if (ST) { ST['n_' + kind] = (ST['n_' + kind] || 0) + 1; if (res === 'goal') ST['g_' + kind] = (ST['g_' + kind] || 0) + 1; }
       const KN = { header: "ヘディングシュート", fk: "直接フリーキック", pk: "PK", thru: "シュート", shot: "シュート" }[kind] || "シュート";
@@ -2928,7 +2956,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     for (const p of played) {
       let ic = (100 - p.condition) * 0.02 + p.fatigue * 0.04;
       const med = (team.facilities || { medical: 1 }).medical;
-      ic *= medInjury(med);
+      ic *= medInjury(med) * (1 - .1 * staffLv(team, "phys"));
       if (p.skill === "鉄人") ic *= 0.3;
       if (rnd() < ic / 100) {
         if (rnd() < 0.02) {
@@ -4681,9 +4709,9 @@ function startDayEffects() {
       p.fatigue = Math.max(0, (parseInt(p.fatigue) || 0) - 30);
     }
     d.logs.push(L("全員休養：体力+20・疲労回復"));
-    const salary = teamSalary(m), upkeep = m.money < 0 ? 0 : facUpkeep(m);   // 借金があるあいだは施設の維持費を止める（最低限の管理だけ）
-    m.money -= salary + upkeep;
-    d.logs.push(L(`💰 選手の給料 -${yen(salary)}（${m.roster.length}人分）${upkeep ? `・施設の維持費 -${yen(upkeep)}` : ""}`));
+    const salary = teamSalary(m), upkeep = m.money < 0 ? 0 : facUpkeep(m), stf = staffCost(m);   // 借金があるあいだは施設の維持費を止める（最低限の管理だけ）
+    m.money -= salary + upkeep + stf;
+    d.logs.push(L(`💰 選手の給料 -${yen(salary)}（${m.roster.length}人分）${upkeep ? `・施設の維持費 -${yen(upkeep)}` : ""}${stf ? `・スタッフの給料 -${yen(stf)}` : ""}`));
     d.logs.push(...sponsorPay(m));
     if (m.money < 0) {
       const interest = Math.max(-2000, Math.trunc(m.money * 0.005));   // 借金の利子は週0.5%（上限 週2,000円）
@@ -5122,6 +5150,7 @@ function matchPrep(kind) {
       <div class="vs-side">${crest(t.name, 40)}<small>${opp.home ? "AWAY" : "HOME"}</small><b>${h(t.name)}</b><span>${h(teamLeagueName(t))} ${rk}位 · 平均 ${avg}</span></div></div>
       ${typeof headlineHTML === "function" ? headlineHTML(m, t, kind) : ""}
       <p class="opp-tac"><span>相手の戦術</span><b>${tacText(t)}</b></p>
+      ${typeof anaReport === "function" ? anaReport(t) : ""}
       ${!opp.home ? `<p class="muted small">アウェイでは攻撃の成功率が下がります。</p>` : ""}`;
   })() : `<p>あなたのチームはすでに敗退しています。</p>`;
   const bracket = kind === "cup" ? cupBracketBlock() : "";
@@ -5494,7 +5523,8 @@ const SHEETS = {
           ${lv >= FAC_MAX ? `<span class="chip">最大</span>` : conf ? `<div class="row2"><button class="btn ghost sm" data-act="fac-cancel">やめる</button><button class="btn primary sm" data-act="fac-go" data-arg="${k}">${yen(cost)}で強化</button></div>`
           : `<button class="btn sm" data-act="fac-ask" data-arg="${k}" ${m.money < cost ? "disabled" : ""}>Lv.${lv + 1}へ<small>${yen(cost)}</small></button>`}</div>`; }).join("")}
       ${stadiumCard(s)}
-      <p class="muted small">施設には維持費がかかります（1つにつき（Lv-1）×${FAC_UPKEEP}円／週・今は週${yen(facUpkeep(m))}）。</p>
+      <p class="muted small">施設には維持費がかかります。レベルが高いほど急に上がります（1施設あたり Lv5で週${yen(facUpk1(5))}・Lv10で週${yen(facUpk1(10))}／今は合計 週${yen(facUpkeep(m))}）。</p>
+      ${typeof staffCard === "function" ? staffCard(s) : ""}
 ` };
   },
   market(s) {
@@ -6091,6 +6121,7 @@ function careerSeasonEnd(c) {
   if (m.roster.filter(p => !p.retired).length >= 20 && m.roster.filter(p => !p.retired).every(p => (parseInt(p.season_apps) || 0) > 0)) achGrant("allplay");
   c.mgrEval = mgrSeasonEnd(c);
   c.mgrEval.extra = rivalSeasonEnd() + recordsSeasonEnd();
+  dynastyCheck(); legendRecycle();
   if (initMgr().rep >= 90) achGrant("rep90");
   if (G.rags && c.my && c.my.div === 1 && c.my.rank === 1) achGrant("rags");
   mgr().seasons = (mgr().seasons || 0) + 1;
@@ -6707,7 +6738,8 @@ function careerNotice2() {
 // =====================================================================
 const FAN_BASE = { 1: [55000, 75000], 2: [35000, 50000], 3: [18000, 32000], 4: [8000, 22000] };
 const TICKET_PRICE = .026;              // 観客1人あたりの収入（円）
-const STADIUM = { step: 5000, cost: 15000, weeks: 8, max: 100000 };
+const STADIUM = { step: 5000, cost: 15000, weeks: 8, max: 150000, aiMax: 100000, big: 100000, bigCost: 40000 };   // 10万席を超える拡張は費用が高い（終盤のお金の使い道）
+const stCost = m => (m.stadium >= STADIUM.big ? STADIUM.bigCost : STADIUM.cost);
 function initFans(t) {
   if (t.fans) return;
   const r = FAN_BASE[t.tier] || FAN_BASE[t.division === 2 ? 4 : 3];
@@ -6761,7 +6793,7 @@ function fansSeasonEnd() {
     if (t !== me()) {   // 他クラブは少しずつ元の規模へ戻り、ファンが増えればスタジアムも広げる
       const r = FAN_BASE[t.tier] || FAN_BASE[4], mid = (r[0] + r[1]) / 2;
       t.fans = Math.round(t.fans + (mid - t.fans) * .03);
-      if (t.fans > t.stadium * 1.1 && t.stadium < STADIUM.max) t.stadium += STADIUM.step;
+      if (t.fans > t.stadium * 1.1 && t.stadium < STADIUM.aiMax) t.stadium += STADIUM.step;
     }
   });
   const m = me();
@@ -6774,19 +6806,19 @@ function stadiumTick() {
   if (--b.weeks > 0) return;
   m.stadium += b.add; m.stadiumBuild = null;
   G.day.logs.push(L(`🏟️ スタジアムの拡張工事が終わりました！ 収容人数 ${m.stadium.toLocaleString()}人`, "good"));
-  if (m.stadium >= STADIUM.max) achGrant("stadium_max");
+  if (m.stadium >= STADIUM.big) achGrant("stadium_max");
 }
 function stadiumCard(s) {
   const m = me(); initFans(m);
   const b = m.stadiumBuild, full = m.stadium >= STADIUM.max, conf = s.confirm === "stadium";
   return `<h3 class="sh">スタジアム</h3><div class="fac"><div><b>スタジアム拡張</b><small>収容 ${m.stadium.toLocaleString()}人 · ファン ${m.fans.toLocaleString()}人${m.lastAtt ? ` · 前回の観客 ${m.lastAtt.toLocaleString()}人` : ""}</small>
     <small>${STADIUM.step.toLocaleString()}席ふやします（工期${STADIUM.weeks}週）。ファンが収容人数より多いと、拡張ぶん観客とチケット収入が増えます。</small>${b ? `<span class="good small">工事中：あと${b.weeks}週</span>` : ""}</div>
-    ${full ? `<span class="chip">最大</span>` : b ? `<span class="chip">工事中</span>` : conf ? `<div class="row2"><button class="btn ghost sm" data-act="fac-cancel">やめる</button><button class="btn primary sm" data-act="stadium-go">${yen(STADIUM.cost)}で拡張</button></div>`
-      : `<button class="btn sm" data-act="fac-ask" data-arg="stadium" ${m.money < STADIUM.cost ? "disabled" : ""}>拡張する<small>${yen(STADIUM.cost)}</small></button>`}</div>`;
+    ${full ? `<span class="chip">最大</span>` : b ? `<span class="chip">工事中</span>` : conf ? `<div class="row2"><button class="btn ghost sm" data-act="fac-cancel">やめる</button><button class="btn primary sm" data-act="stadium-go">${yen(stCost(m))}で拡張</button></div>`
+      : `<button class="btn sm" data-act="fac-ask" data-arg="stadium" ${m.money < stCost(m) ? "disabled" : ""}>拡張する<small>${yen(stCost(m))}</small></button>`}</div>`;
 }
 ACTIONS["stadium-go"] = () => {
-  const m = me(); if (m.money < STADIUM.cost || m.stadiumBuild) return;
-  m.money -= STADIUM.cost; m.stadiumBuild = { weeks: STADIUM.weeks, add: Math.min(STADIUM.step, STADIUM.max - m.stadium) };
+  const m = me(); if (m.money < stCost(m) || m.stadiumBuild) return;
+  m.money -= stCost(m); m.stadiumBuild = { weeks: STADIUM.weeks, add: Math.min(STADIUM.step, STADIUM.max - m.stadium) };
   topSheet().confirm = null; persist(); renderSheet(); render(); toast(`スタジアムの拡張工事を始めました（${STADIUM.weeks}週）`, "good");
 };
 // 成り上がりで始める：2部の弱いクラブ・少ない資金とファン
@@ -6798,7 +6830,7 @@ function applyRags() {
 }
 ACH.push(
   ["fans100k", "国民的クラブ", "ファンを10万人に増やす", "クラブ"],
-  ["stadium_max", "夢の劇場", `スタジアムを${STADIUM.max.toLocaleString()}人収容まで広げる`, "クラブ"],
+  ["stadium_max", "夢の劇場", `スタジアムを${STADIUM.big.toLocaleString()}人収容まで広げる`, "クラブ"],
   ["rags", "成り上がり", "成り上がりモードで1部リーグ優勝", "タイトル"],
 );
 for (const a of ACH.slice(-3)) ACH_BY[a[0]] = a;
@@ -7046,14 +7078,18 @@ function ensureContracts() {
     if (p.ct == null) {
       const first = !G.ctInit;   // 最初に契約を付けるときは残り1〜4年をランダムに
       p.ct = G.season_year + (first ? randint(0, 3) : (p.age <= 23 ? 3 : p.age <= 30 ? 2 : 1));
-      p.wage = p.wage || baseWage(p);
+      p.wage = p.wage || Math.round(baseWage(p) * wageScale(m) / 10) * 10;
       if (p.sat == null) p.sat = 70;
     }
   }
   G.ctInit = true;
 }
 // 更新の要求額（週給）：能力・性格・満足度で決まる
-const wageDemand = p => Math.round(baseWage(p) * PER(p).wage * (p.sat < 40 ? 1.2 : 1) / 10) * 10;
+// 給料の相場はクラブの収入の規模で決まる（収入が大きいクラブほど高い給料を払うことになる）
+//  見込みの週収入 4,500円までは1倍、9,000円で2倍（上限）
+const incomeEst = t => { initFans(t); return sum((t.sponsors || []).map(x => x.weekly || 0)) + t.fans * .9 * TICKET_PRICE * (t.division === 2 ? ATT.d2price : 1) * .5 + MATCH_REW.win * .5 * (t.division === 2 ? MATCH_REW.d2 : 1); };
+const wageScale = t => clamp(incomeEst(t) / 4500, 1, 2);
+const wageDemand = p => Math.round(baseWage(p) * wageScale(me()) * PER(p).wage * (p.sat < 40 ? 1.2 : 1) / 10) * 10;
 const ctLeft = p => (p.ct ?? G.season_year) - G.season_year + 1;   // 今季を含めた残りシーズン
 // 毎週（日曜）：満足度の変化と、移籍の希望
 function satWeekly() {
@@ -7066,7 +7102,7 @@ function satWeekly() {
     const P = PER(p), rk = order.indexOf(p);
     const expShare = xi.has(p) ? .6 : rk < 16 ? .3 : .1, share = played ? (p.season_apps || 0) / played : expShare;
     let ds = played >= 3 ? clamp((share - expShare) * 6, -2, 1) : 0;
-    if (p.wage < baseWage(p) * .8) ds -= 1.5;          // 実力に対して給料が安い
+    if (p.wage < baseWage(p) * wageScale(me()) * .8) ds -= 1.5;          // 実力に対して給料が安い
     if (perOf(p) === "野心家" && m.division === 2) ds -= .7;
     ds *= ds < 0 ? P.sat : 1;
     if (leader) ds += .4;
@@ -7317,7 +7353,7 @@ function scoutReport(m) {
   const logs = [], yl = (m.facilities || {}).youth || 1, boost = !!m.scout_boost;
   const region = m.scout_type === "region" && REGIONS[m.scout_region] ? m.scout_region : m.scout_type === "overseas" ? choice(Object.keys(REGIONS)) : null;   // 古い「海外」は地域をひとつ選ぶ
   const lv = region ? brLv(m, region) : 0, nats = region ? REGIONS[region][1] : null, own = natOfCountry(G.country);
-  const n = randint(1, 3) + (region && lv >= 2 ? 1 : 0) + (yl >= 5 ? 1 : 0) + (yl >= 10 ? 1 : 0);   // 支部はLv2以上で候補+1人
+  const n = randint(1, 3) + (region && lv >= 2 ? 1 : 0) + (yl >= 5 ? 1 : 0) + (yl >= 10 ? 1 : 0) + (staffLv(m, "scout") >= 2 ? 1 : 0);   // 支部はLv2以上で候補+1人
   // レジェンドは報告1回につき1回だけ判定
   if (rnd() < (region ? LEGEND_REPORT.region[lv] : LEGEND_REPORT.domestic)) {
     let id = null;
@@ -7337,7 +7373,7 @@ function scoutReport(m) {
                   : createPlayer({ age: randint(15, 18), pos: m.scout_target_pos, quality: "scout_high", country: G.country });
     if (nat && !NAME_POOLS[NAT_CODE[nat] || nat]) fixNatName(p, nat);
     fitOvr(p, randint(50, 58) + lv);
-    const S = (region ? .06 + .04 * lv : 0) + .01 * (yl - 1) + (boost ? .15 : 0), A = .30 + (region ? .05 * lv : 0) + .02 * (yl - 1);
+    const sl = staffLv(m, "scout"), S = (region ? .06 + .04 * lv : 0) + .01 * (yl - 1) + (boost ? .15 : 0) + (sl ? .01 + .01 * sl : 0), A = .30 + (region ? .05 * lv : 0) + .02 * (yl - 1);
     const x = rnd();
     p.potential = x < S ? randint(95, 105) : x < S + A ? randint(85, 94) : x < S + A + .44 ? randint(76, 84) : randint(68, 75);
     if (!region) p.potential = Math.min(p.potential, 90);   // 国内調査ではSは出ない
@@ -7597,8 +7633,11 @@ function clubLegFans() { const n = clubLegs().length; if (!n) return; const m = 
 function headhuntWeekly() {
   const M = initMgr(), m = me(), mo = month();
   if (G.hh || M.hhY === G.season_year || G.fired || ![10, 11, 12, 2, 3].includes(mo)) return;
-  if (M.rep < clubReq(m) + 8 || (M.conf ?? 60) < 50 || rnd() > .05) return;
-  const c = G.teams.filter(t => t !== m && clubReq(t) > clubReq(m) + 3 && clubReq(t) <= M.rep + 5).sort((a, b) => clubReq(b) - clubReq(a)).slice(0, 4);
+  // ビッグクラブの監督（格が上限に近い）は、評判80以上なら他国の同格でファン数か資金が上回るクラブから声がかかる
+  const top = clubReq(m) >= 65;
+  if (M.rep < (top ? 80 : clubReq(m) + 8) || (M.conf ?? 60) < 50 || rnd() > (top ? .03 : .05)) return;
+  const c = (top ? G.teams.filter(t => t !== m && t.country !== m.country && t.division === 1 && clubReq(t) >= clubReq(m) - 3 && ((t.fans || 0) > (m.fans || 0) * 1.05 || t.money > m.money * 1.2))
+                 : G.teams.filter(t => t !== m && clubReq(t) > clubReq(m) + 3 && clubReq(t) <= M.rep + 5)).sort((a, b) => clubReq(b) - clubReq(a) || (b.fans || 0) - (a.fans || 0)).slice(0, 4);
   if (!c.length) return;
   const t = choice(c); M.hhY = G.season_year;
   G.hh = { ti: G.teams.indexOf(t) };
@@ -7710,6 +7749,72 @@ function after4(f, a, home, isCup, st) {
   weeklyGoalsCheck(f, a, st, side);
   hiddenAfterMatch(f, a, st, side, opp, xiDiff);
   if (!isCup) { fateAfterMatch(); recordsAfterMatch(); }
+}
+
+// ===== 長期プレイの調整（200年検証から） =====
+// 1) お金：給料の相場（wageScale）・施設の維持費・スタッフで、ビッグクラブでも黒字が少しずつになるようにした
+// 2) AIのクラブの連覇：主力が他国のクラブに引き抜かれやすくなる
+function dynastyCheck() {
+  const m = me(), out = [];
+  G.runs = G.runs || {};
+  for (const c of COUNTRIES) {
+    if (c.id !== G.country) for (const t of divTeams(1, c.id)) t.boost = 0;
+    const ch = standings(1, c.id)[0]; if (!ch) continue;
+    const r = G.runs[c.id] = (G.runs[c.id] && G.runs[c.id].name === ch.name) ? { name: ch.name, n: G.runs[c.id].n + 1 } : { name: ch.name, n: 1 };
+    if (ch === m || r.n < 2) continue;
+    const pr = Math.min(.8, .3 * (r.n - 1));
+    const stars = ch.roster.filter(p => !p.retired && p.age <= 30).sort((a, b) => getOvr(b) - getOvr(a)).slice(0, 3);
+    for (const p of stars) {
+      if (rnd() > pr) continue;
+      const buyers = G.teams.filter(t => t !== ch && t !== m && t.country !== ch.country && t.division === 1 && t.roster.length < 26 && t.money > p.value);
+      if (!buyers.length) continue;
+      const b = choice(buyers), fee = Math.round(p.value * uniform(1.1, 1.4) / 100) * 100;
+      ch.roster.splice(ch.roster.indexOf(p), 1); b.roster.push(p); b.money -= fee; ch.money += fee; p.ct = randint(2, 5);
+      out.push(`${p.name}（${ch.name}→${b.name}）`);
+    }
+    // 同じリーグの2〜5位も本気で補強する
+    standings(1, c.id).slice(1, 5).forEach(t => { if (t !== m) t.boost = Math.max(t.boost || 0, Math.min(3, r.n - 1)); });
+  }
+  if (out.length) G.day.logs.push(L(`📰 連覇中のクラブから主力が流出：${out.slice(0, 4).join("、")}${out.length > 4 ? ` ほか${out.length - 4}人` : ""}`, "head"));
+}
+// 3) レジェンド：いなくなった人から、また若手として現れられるようにする（登場できる人を20人以上に保つ）
+const LEGEND_FREE_MIN = 20;
+function legendRecycle() {
+  const st = legendState(), act = new Set();
+  const see = p => { if (p && p.legend && !p.retired) act.add(p.legend); };
+  for (const t of G.teams) { t.roster.forEach(see); (t.scout_candidates || []).forEach(see); (t.academy || []).forEach(see); }
+  (G.natPool || []).forEach(see); (G.freeAgents || []).forEach(see);
+  if (st.market) act.add(st.market.id);
+  if (act.size >= 25) return;
+  let free = LEGENDS.filter(l => !st.used.includes(l[0])).length;
+  const back = new Set((st.back || []).map(e => e.id));
+  for (const id of st.used.slice()) {   // 登場が古い順に戻す
+    if (free >= LEGEND_FREE_MIN) break;
+    if (act.has(id) || back.has(id)) continue;
+    st.used.splice(st.used.indexOf(id), 1); free++;
+  }
+}
+
+// ===== スタッフの雇用 =====
+function staffCard(s) {
+  const m = me(); m.staff = m.staff || {};
+  return `<h3 class="sh">スタッフ</h3><p class="muted small">週給を払って雇います。雇うときに4週分の契約金がかかります。等級を下げる・解雇するのは無料です。</p>` +
+    Object.entries(STAFF).map(([k, v]) => { const lv = staffLv(m, k), nx = lv + 1, fee = nx <= 3 ? STAFF_PAY[nx] * 4 : 0;
+      return `<div class="fac"><div><b>${v.n}</b><small>${lv ? `等級${lv}：${v.d.slice(0, lv).join("、")}` : "未雇用"}</small><span class="pips">${[1, 2, 3].map(i => `<i class="${i <= lv ? "on" : ""}"></i>`).join("")} ${lv ? `週${yen(STAFF_PAY[lv])}` : ""}</span></div>
+        <div class="row2">${lv ? `<button class="btn ghost sm" data-act="staff-down" data-arg="${k}">${lv === 1 ? "解雇" : "下げる"}</button>` : ""}${nx <= 3 ? `<button class="btn sm" data-act="staff-up" data-arg="${k}" ${m.money < fee ? "disabled" : ""}>${lv ? `等級${nx}へ` : "雇う"}<small>${yen(fee)}・週${yen(STAFF_PAY[nx])}</small></button>` : `<span class="chip">最高</span>`}</div></div>`; }).join("") +
+    `<p class="muted small">スタッフの給料：今は週${yen(staffCost(m))}</p>`;
+}
+Object.assign(ACTIONS, {
+  "staff-up"(k) { const m = me(); m.staff = m.staff || {}; const nx = staffLv(m, k) + 1; if (nx > 3) return; const fee = STAFF_PAY[nx] * 4; if (m.money < fee) return; m.money -= fee; m.staff[k] = nx; persist(); renderSheet(); render(); toast(`${STAFF[k].n}（等級${nx}）を雇いました`, "good"); },
+  "staff-down"(k) { const m = me(); const lv = staffLv(m, k); if (!lv) return; m.staff[k] = lv - 1; if (!m.staff[k]) delete m.staff[k]; persist(); renderSheet(); render(); toast(lv === 1 ? `${STAFF[k].n}を解雇しました` : `${STAFF[k].n}を等級${lv - 1}にしました`); },
+});
+// 分析官のレポート（試合前の画面）：相手のいちばん弱いライン
+function anaReport(t) {
+  const lv = staffLv(me(), "ana"); if (!lv) return "";
+  const st = getStarters(t), avg = pos => { const a = st.filter(p => p.pos === pos).map(getOvr); return a.length ? sum(a) / a.length : 99; };
+  const lines = [["DF", "守備ライン"], ["MF", "中盤"], ["FW", "前線"]].map(([k, n]) => [n, avg(k)]).sort((a, b) => a[1] - b[1]);
+  const gk = st.find(p => p.pos === "GK");
+  return `<p class="opp-tac"><span>📋 分析官</span><b>相手は${lines[0][0]}が手薄（平均${Math.round(lines[0][1])}）${gk && lv >= 2 ? ` · GK ${gk.name}は${(gk.height || 185) < 185 ? "高いボールに弱い" : "反応は" + (gk.reflexes >= 80 ? "鋭い" : "並")}` : ""}</b></p>`;
 }
 
 </script>
