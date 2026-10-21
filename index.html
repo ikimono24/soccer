@@ -786,6 +786,18 @@ table.mini tr.up td:first-child { font-weight: 700; }
 .udcols .updown li.hd { font-size: 12px; font-weight: 700; list-style: none; }
 .udcols .updown li.hd { background: none; padding: 2px 4px; }
 .udcols .updown li:not(.hd) { padding: 4px 8px; font-size: 13px; }
+.flag { margin-right: 4px; font-size: 1.05em; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.wct td:first-child { white-space: nowrap; }
+.wct tr.mine td { font-weight: 700; color: var(--accent); }
+.bkr { margin: 6px 0 10px; }
+.bkr h4 { margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+.bkr.next h4 { color: var(--accent); }
+.bk { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; padding: 5px 8px; margin-bottom: 3px; background: var(--surface-2); border-radius: 7px; font-size: 13px; }
+.bk span:last-child { text-align: right; }
+.bk span.w { font-weight: 700; }
+.bk span.mine { color: var(--accent); }
+.bk b { font-family: var(--f-num); font-size: 13px; white-space: nowrap; }
+.bk b small { font-size: 10px; margin-left: 2px; color: var(--muted); }
 
 </style>
 </head>
@@ -6869,17 +6881,17 @@ function worldCup() {
 function wcCard(w) {
   if (!w) return "";
   const gl = "ABCDEFGHIJKL";
-  const rnd_ = r => `<p class="wcr"><b>${r.name}</b>${r.res.map(([a, b, x, y, pk]) => `<span>${h(a)} ${x}-${y} ${h(b)}${pk ? "（PK）" : ""}</span>`).join("")}</p>`;
+  const rnd_ = r => wcBracketHTML([r], null, "", w.coach ? w.coach.nat : null);
   const late = w.rounds.filter(r => ["準々決勝", "準決勝", "決勝"].includes(r.name)), early = w.rounds.filter(r => !late.includes(r));
   return `<section class="card trophy"><h2 class="ch">🌍 W杯 ${w.year}<small>${w.n || 16}か国</small></h2>
-    <p class="wcwin">🏆 優勝：<b>${h(w.winner)}</b>　準優勝：${h(w.runner)}</p>
+    <p class="wcwin">🏆 優勝：<b>${fl(w.winner)}${h(w.winner)}</b>　準優勝：${fl(w.runner)}${h(w.runner)}</p>
     ${w.coach ? `<p class="good">🧑‍💼 あなたが率いた${h(w.coach.nat)}代表：<b>${h(w.coach.st)}</b>（評判 ${w.coach.dRep >= 0 ? "+" : ""}${w.coach.dRep}）${w.coach.quit ? "・代表監督を退任" : ""}</p>` : ""}
-    <ul class="awards"><li class="${w.mvp.mine ? "mine" : ""}"><span>大会MVP</span><b>${h(w.mvp.n)}</b><small>${h(w.mvp.nat)} · ${h(w.mvp.club)} · ${w.mvp.g}得点${w.mvp.as}A</small></li>
-    <li class="${w.scorer.mine ? "mine" : ""}"><span>得点王</span><b>${h(w.scorer.n)}</b><small>${h(w.scorer.nat)} · ${h(w.scorer.club)} · ${w.scorer.g}得点</small></li></ul>
+    <ul class="awards"><li class="${w.mvp.mine ? "mine" : ""}"><span>大会MVP</span><b>${h(w.mvp.n)}</b><small>${fl(w.mvp.nat)}${h(w.mvp.nat)} · ${h(w.mvp.club)} · ${w.mvp.g}得点${w.mvp.as}A</small></li>
+    <li class="${w.scorer.mine ? "mine" : ""}"><span>得点王</span><b>${h(w.scorer.n)}</b><small>${fl(w.scorer.nat)}${h(w.scorer.nat)} · ${h(w.scorer.club)} · ${w.scorer.g}得点</small></li></ul>
     ${w.mine.length ? `<h3 class="sh">あなたのクラブの代表選手</h3><ul class="b11 one">${w.mine.map(x => `<li class="mine"><b>${h(x.n)}</b><small>${h(x.nat)} · ${typeof x.st === "number" ? ["グループリーグ敗退", "準々決勝敗退", "準決勝敗退", "準優勝", "優勝"][x.st] : h(x.st)} · ${x.g}得点</small></li>`).join("")}</ul>` : `<p class="muted small">あなたのクラブから代表に選ばれた選手はいませんでした。</p>`}
     <h3 class="sh">決勝トーナメント</h3>${late.map(rnd_).join("")}
     ${early.length ? `<details class="more"><summary>${early.map(r => r.name).join("・")}</summary>${early.map(rnd_).join("")}</details>` : ""}
-    <details class="more"><summary>グループリーグ（${w.groups.length}組）</summary>${w.groups.map((g, i) => `<h3 class="sh">グループ${gl[i]}</h3><table class="mini"><tr><th></th><th>勝</th><th>分</th><th>敗</th><th>得失</th><th>点</th></tr>${g.map((r, j) => `<tr class="${j < 2 ? "up" : ""}"><td>${h(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] - r[5]}</td><td><b>${r[6]}</b></td></tr>`).join("")}</table>`).join("")}</details></section>`;
+    <details class="more"><summary>グループリーグ（${w.groups.length}組）</summary>${wcGroupsHTML(w.groups, w.coach ? w.coach.nat : null)}</details></section>`;
 }
 AW_LABEL.w = "W杯優勝"; AW_LABEL.ws = "W杯得点王"; AW_LABEL.wm = "W杯MVP";
 ACH.push(
@@ -7184,11 +7196,14 @@ function renderWcCoach(c) {
   if (!st) return hero;
   const my = wcMyMatch(st), myT = st.teams.find(t => t.name === nat), alive = wcAlive(st);
   const grp = st.groups.find(g => g.includes(myT));
-  const table = grp ? `<table class="mini"><tr><th></th><th>勝</th><th>分</th><th>敗</th><th>得失</th><th>点</th></tr>${grp.slice().sort(wcCmp).map(t => `<tr class="${t === myT ? "up" : ""}"><td>${h(t.name)}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td><td>${t.gf - t.ga}</td><td><b>${t.points}</b></td></tr>`).join("")}</table>` : "";
-  const last = U.last ? `<h3 class="sh">前回の結果</h3><p class="wcr">${U.last.map(([a, b, r]) => `<span class="${a === myT || b === myT ? "mine" : ""}">${h(a.name)} ${r.hs}-${r.as} ${h(b.name)}${r.pk ? "（PK）" : ""}</span>`).join("")}</p>` : "";
-  const body = my ? `<p class="wcnext"><b>${h(wcDayName(st))}</b><br>${h(my[0].name)} vs ${h(my[1].name)}</p><div class="row2"><button class="btn primary" data-act="wc-play" data-arg="live">実況で観る</button><button class="btn ghost" data-act="wc-play" data-arg="skip">結果だけ</button></div>`
+  const table = grp ? `<table class="mini"><tr><th></th><th>勝</th><th>分</th><th>敗</th><th>得失</th><th>点</th></tr>${grp.slice().sort(wcCmp).map(t => `<tr class="${t === myT ? "up" : ""}"><td>${fl(t.name)}${h(t.name)}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td><td>${t.gf - t.ga}</td><td><b>${t.points}</b></td></tr>`).join("")}</table>` : "";
+  const last = U.last ? `<h3 class="sh">前回の結果</h3><p class="wcr">${U.last.map(([a, b, r]) => `<span class="${a === myT || b === myT ? "mine" : ""}">${fl(a.name)}${h(a.name)} ${r.hs}-${r.as} ${fl(b.name)}${h(b.name)}${r.pk ? "（PK）" : ""}</span>`).join("")}</p>` : "";
+  const body = my ? `<p class="wcnext"><b>${h(wcDayName(st))}</b><br>${fl(my[0].name)}${h(my[0].name)} vs ${fl(my[1].name)}${h(my[1].name)}</p><div class="row2"><button class="btn primary" data-act="wc-play" data-arg="live">実況で観る</button><button class="btn ghost" data-act="wc-play" data-arg="skip">結果だけ</button></div>`
     : `<p>${alive ? "" : `<b>${h(nat)}は敗退しました。</b>`}</p><button class="btn primary wide" data-act="wc-rest">${alive ? "次へ" : "残りの試合を進める"}</button>`;
-  return hero + `<section class="card"><h2 class="ch">${h(nat)}代表</h2>${body}${st.md <= 3 && grp ? `<h3 class="sh">グループ</h3>${table}` : ""}${last}</section>`;
+  const gtab = st.groups.map(g => g.slice().sort(wcCmp).map(t => [t.name, t.won, t.drawn, t.lost, t.gf, t.ga, t.points]));
+  const more = `<details class="card fold" ${st.md >= 3 ? "open" : ""}><summary>🏆 決勝トーナメント表</summary>${st.md >= 3 ? wcBracketHTML(st.rounds, st.winner ? [] : st.ko, wcDayName(st), nat) : `<p class="muted small">グループリーグの終了後に決まります（各組の上位2チーム${st.N === 48 ? "と、成績の良い3位8チーム" : ""}が進出）。</p>`}</details>
+    <details class="card fold" ${st.md < 3 ? "" : ""}><summary>📊 グループリーグ 全${st.groups.length}組の順位表</summary>${wcGroupsHTML(gtab, nat)}</details>`;
+  return hero + `<section class="card"><h2 class="ch">${fl(nat)}${h(nat)}代表</h2>${body}${st.md <= 3 && grp ? `<h3 class="sh">グループ</h3>${table}` : ""}${last}</section>${more}`;
 }
 function wcAfterDay(res) {
   const U = T.wcUI; U.last = res.filter(([a, b]) => a.name === U.nat || b.name === U.nat || res.length <= 4);
@@ -8030,6 +8045,48 @@ function revalue() {
   const fs = G.fireSale && G.fireSale.until >= G.season_year ? G.fireSale.idx : -1;
   G.teams.forEach((t, i) => { if (i === fs) return; for (const p of t.roster) if (!p.retired) p.value = Math.round(calcValue(p) * (p.legend ? 1.3 : 1)); });
   for (const p of G.freeAgents || []) p.value = Math.round(calcValue(p) * (p.legend ? 1.3 : 1));
+}
+
+// ===== 国旗（国名 → 国旗の絵文字）。イングランドなどの4協会は専用の旗 =====
+const FLAG_ISO = {
+  "アイスランド": "IS", "アイルランド": "IE", "アゼルバイジャン": "AZ", "アフガニスタン": "AF", "アメリカ": "US", "アラブ首長国連邦": "AE", "アルジェリア": "DZ", "アルゼンチン": "AR", "アルバニア": "AL", "アルメニア": "AM", "アンゴラ": "AO",
+  "アンティグア・バーブーダ": "AG", "アンドラ": "AD", "イエメン": "YE", "イスラエル": "IL", "イタリア": "IT", "イラク": "IQ", "イラン": "IR", "インド": "IN", "インドネシア": "ID", "ウガンダ": "UG", "ウクライナ": "UA", "ウズベキスタン": "UZ",
+  "ウルグアイ": "UY", "エクアドル": "EC", "エジプト": "EG", "エストニア": "EE", "エルサルバドル": "SV", "オランダ": "NL", "オーストラリア": "AU", "オーストリア": "AT", "カタール": "QA", "カナダ": "CA", "カメルーン": "CM", "カーボベルデ": "CV",
+  "ガイアナ": "GY", "ガボン": "GA", "ガンビア": "GM", "ガーナ": "GH", "キプロス": "CY", "キュラソー": "CW", "キューバ": "CU", "ギニア": "GN", "ギニアビサウ": "GW", "ギリシャ": "GR", "クロアチア": "HR", "グアテマラ": "GT", "グレナダ": "GD",
+  "ケニア": "KE", "コスタリカ": "CR", "コソボ": "XK", "コモロ": "KM", "コロンビア": "CO", "コンゴ共和国": "CG", "コンゴ民主共和国": "CD", "コートジボワール": "CI", "サウジアラビア": "SA", "ザンビア": "ZM", "シエラレオネ": "SL", "シリア": "SY",
+  "ジブラルタル": "GI", "ジャマイカ": "JM", "ジョージア": "GE", "ジンバブエ": "ZW", "スイス": "CH", "スウェーデン": "SE", "スペイン": "ES", "スリナム": "SR", "スリランカ": "LK", "スロバキア": "SK", "スロベニア": "SI", "セネガル": "SN", "セルビア": "RS",
+  "セントクリストファー・ネービス": "KN", "セントルシア": "LC", "ソマリア": "SO", "タイ": "TH", "タジキスタン": "TJ", "タンザニア": "TZ", "チェコ": "CZ", "チャイニーズ・タイペイ": "TW", "チャド": "TD", "チュニジア": "TN", "チリ": "CL", "デンマーク": "DK",
+  "トリニダード・トバゴ": "TT", "トルコ": "TR", "トーゴ": "TG", "ドイツ": "DE", "ドミニカ共和国": "DO", "ナイジェリア": "NG", "ナミビア": "NA", "ニジェール": "NE", "ニューカレドニア": "NC", "ニュージーランド": "NZ", "ノルウェー": "NO", "ハイチ": "HT",
+  "ハンガリー": "HU", "バヌアツ": "VU", "バミューダ": "BM", "バルバドス": "BB", "バングラデシュ": "BD", "パキスタン": "PK", "パナマ": "PA", "パラグアイ": "PY", "パレスチナ": "PS", "フィリピン": "PH", "フィンランド": "FI", "フェロー諸島": "FO",
+  "フランス": "FR", "ブラジル": "BR", "ブルガリア": "BG", "ブルキナファソ": "BF", "ブルンジ": "BI", "プエルトリコ": "PR", "ベナン": "BJ", "ベネズエラ": "VE", "ベラルーシ": "BY", "ベルギー": "BE", "ペルー": "PE", "ホンジュラス": "HN",
+  "ボスニア・ヘルツェゴビナ": "BA", "ボリビア": "BO", "ポルトガル": "PT", "ポーランド": "PL", "マダガスカル": "MG", "マラウイ": "MW", "マリ": "ML", "マルタ": "MT", "マレーシア": "MY", "メキシコ": "MX", "モザンビーク": "MZ", "モルドバ": "MD",
+  "モロッコ": "MA", "モンテネグロ": "ME", "モントセラト": "MS", "モーリタニア": "MR", "ヨルダン": "JO", "ラトビア": "LV", "リトアニア": "LT", "リヒテンシュタイン": "LI", "リビア": "LY", "リベリア": "LR", "ルクセンブルク": "LU", "ルワンダ": "RW",
+  "ルーマニア": "RO", "レバノン": "LB", "ロシア": "RU", "中国": "CN", "中央アフリカ": "CF", "北マケドニア": "MK", "南アフリカ": "ZA", "日本": "JP", "赤道ギニア": "GQ", "韓国": "KR", "香港": "HK",
+  "クウェート": "KW", "バーレーン": "BH", "オマーン": "OM", "スーダン": "SD", "ジブチ": "DJ", "ベトナム": "VN", "ミャンマー": "MM", "ラオス": "LA", "カンボジア": "KH", "東ティモール": "TL", "シンガポール": "SG", "ブルネイ": "BN",
+  "ネパール": "NP", "ブータン": "BT", "モルディブ": "MV", "モンゴル": "MN", "キルギス": "KG", "トルクメニスタン": "TM", "カザフスタン": "KZ", "フィジー": "FJ", "サモア": "WS", "米領サモア": "AS", "トンガ": "TO", "タヒチ": "PF",
+  "ソロモン諸島": "SB", "パプアニューギニア": "PG", "クック諸島": "CK", "バハマ": "BS", "ケイマン諸島": "KY", "ドミニカ国": "DM", "セントビンセント・グレナディーン": "VC", "ベリーズ": "BZ", "アンギラ": "AI", "英領ヴァージン諸島": "VG",
+  "米領ヴァージン諸島": "VI", "タークス・カイコス諸島": "TC", "グアム": "GU", "エチオピア": "ET", "エリトリア": "ER", "南スーダン": "SS", "ボツワナ": "BW", "レソト": "LS", "エスワティニ": "SZ", "モーリシャス": "MU", "セーシェル": "SC",
+  "アルバ": "AW", "サンマリノ": "SM", "マカオ": "MO", "北朝鮮": "KP", "サントメ・プリンシペ": "ST", "ニカラグア": "NI", "モナコ": "MC",
+};
+const FLAG_SUB = { "イングランド": "gbeng", "スコットランド": "gbsct", "ウェールズ": "gbwls" };
+function flagOf(nat) {
+  if (!nat) return "";
+  if (FLAG_SUB[nat]) return "🏴" + [...FLAG_SUB[nat]].map(c => String.fromCodePoint(0xE0000 + c.charCodeAt(0))).join("") + "\u{E007F}";
+  if (nat === "北アイルランド") return "🇬🇧";
+  const iso = FLAG_ISO[nat]; if (!iso) return "";
+  return [...iso].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join("");
+}
+const fl = nat => { const f = flagOf(nat); return f ? `<span class="flag">${f}</span>` : ""; };
+// W杯：グループの順位表と決勝トーナメント表（大会中・大会後の両方で使う）
+function wcGroupsHTML(groups, myNat) {   // groups: [[name, w, d, l, gf, ga, pts], ...]
+  const gl = "ABCDEFGHIJKL";
+  return groups.map((g, i) => `<h3 class="sh">グループ${gl[i]}</h3><table class="mini wct"><tr><th></th><th>勝</th><th>分</th><th>敗</th><th>得失</th><th>点</th></tr>${g.map((r, j) => `<tr class="${r[0] === myNat ? "mine" : ""} ${j < 2 ? "up" : ""}"><td>${fl(r[0])}${h(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4] - r[5]}</td><td><b>${r[6]}</b></td></tr>`).join("")}</table>`).join("");
+}
+function wcBracketHTML(rounds, next, nextName, myNat) {   // rounds: [{name, res:[[a,b,x,y,pk]]}]  next: [[teamA, teamB]] これからの試合
+  const row = (a, b, x, y, pk) => { const wa = x != null && x > y, wb = x != null && !wa;
+    return `<div class="bk"><span class="${wa ? "w" : ""} ${a === myNat ? "mine" : ""}">${fl(a)}${h(a)}</span><b>${x != null ? `${x}-${y}${pk ? "<small>PK</small>" : ""}` : "vs"}</b><span class="${wb ? "w" : ""} ${b === myNat ? "mine" : ""}">${fl(b)}${h(b)}</span></div>`; };
+  return rounds.map(r => `<div class="bkr"><h4>${h(r.name)}</h4>${r.res.map(([a, b, x, y, pk]) => row(a, b, x, y, pk)).join("")}</div>`).join("")
+    + (next && next.length ? `<div class="bkr next"><h4>${h(nextName)}（これから）</h4>${next.map(([a, b]) => row(a.name, b.name)).join("")}</div>` : "");
 }
 
 </script>
