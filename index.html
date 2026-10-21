@@ -2444,6 +2444,9 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   };
   // ある地点（sd チームの座標）に近い選手ほど選ばれやすい。w は能力による重み
   // マークの集中：同じ試合で何本もシュートを打った選手は、守備が警戒して次にボールが回りにくい
+  // 前にいる味方だけに絞る（いなければそのまま）：ゴール前で後ろへ戻すパスを減らす
+  const ahead = (list, from, tol = -.02) => { const fx = posL(from, side_(from), true)[0]; const f = list.filter(p => posL(p, side_(p), true)[0] >= fx + tol); return f.length ? f : list; };
+  const side_ = p => (hPart.has(p) ? "home" : "away");
   const SHC = new Map(), markW = p => Math.pow(TUNE2.markK, SHC.get(p) || 0);
   const nearPick = (cands, sd, att, tx, ty, sig = 16, w = null) => {
     cands = cands.filter(Boolean); if (!cands.length) return null;
@@ -2772,7 +2775,8 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
         for (let i = 0; i < n; i++) {
           const [, hy] = posL(holder, side, true);
           x += .06;
-          const recv = nearPick(role(A, "MF", "FW").filter(p => p !== holder && p !== prev) .length ? role(A, "MF", "FW").filter(p => p !== holder && p !== prev) : OF(A).filter(p => p !== holder), side, true, x + .04, cl(hy + (rnd() - .5) * .3, .2, .8), 12);
+          const rc0 = role(A, "MF", "FW").filter(p => p !== holder && p !== prev).length ? role(A, "MF", "FW").filter(p => p !== holder && p !== prev) : OF(A).filter(p => p !== holder);
+          const recv = nearPick(ahead(rc0, holder), side, true, x + .04, cl(hy + (rnd() - .5) * .3, .2, .8), 12);
           const df = nearPick(OF(D), oth, false, ...flip([x + .03, hy]), 10);
           const q = V(holder, "passing") * .6 + V(holder, "vision") * .2 + V(recv, "composure") * .2 - (V(df, "marking") * .5 + V(df, "positioning") * .5) + randint(0, TUNE2.comboRand) + (has(A, "【極】司令塔") ? TUNE2.skPlay.combo : 0);
           if (q < TUNE2.comboThr + penalty * .5) {
@@ -2792,7 +2796,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       function* oneTwo() {
         const R = pAtk;
         const [rx, ry] = posL(R, side, true);
-        const W = nearPick(role(A, "MF", "FW").filter(p => p !== R).length ? role(A, "MF", "FW").filter(p => p !== R) : OF(A).filter(p => p !== R), side, true, Math.min(.85, rx + .1), cl(ry + (ry > .5 ? -.12 : .12), .2, .8), 12);
+        const W = nearPick(ahead(role(A, "MF", "FW").filter(p => p !== R).length ? role(A, "MF", "FW").filter(p => p !== R) : OF(A).filter(p => p !== R), R, -.06), side, true, Math.min(.85, rx + .1), cl(ry + (ry > .5 ? -.12 : .12), .2, .8), 12);
         const Dd = nearPick(role(D, "DF", "MF"), oth, false, ...flip([rx + .06, ry]), 10);
         const q = V(R, "acceleration") * .5 + V(R, "speed") * .3 + V(W, "passing") * .4 - (V(Dd, "speed") * .4 + V(Dd, "positioning") * .5) + randint(0, TUNE2.o2Rand) + behind + trans + (R.skill === "スピードスター" ? TUNE2.skSpeed : 0);
         const ok = q > TUNE2.o2Thr + penalty;
@@ -3702,6 +3706,7 @@ function onAttack(e) {
 function onAct(e) {
   const A = e.side, D = other(A);
   S.lastAct = e.kind; S.actT = S.simT;
+  if (window.__ACT) window.__ACT(e, S);   // テスト用
   const f = ACTS[e.kind];
   return f ? f(e, A, D) : .1;
 }
@@ -3712,7 +3717,7 @@ const ACTS = {
     S.poss = A;
     // 出し手が今ボールを持っていないときは、ボールを持っている味方がそのまま出す（後ろの選手にわざわざ戻さない）
     const h = S.ball.holder || (S.ball.anim && S.ball.anim.to) || null;      // 持っている、またはパスが向かっている味方
-    if ((e.zone === "build" || e.zone === "mid") && h && h.side === A && h !== fm && h !== r) fm = h;
+    if ((e.zone === "build" || e.zone === "mid" || e.zone === "short") && h && h.side === A && h !== fm && h !== r) fm = h;   // 持っている味方から直接出す（いったん後ろへ戻さない）
     let t = ensureBall(fm);
     const [rx, ry] = locL(A, r);
     let spot;
@@ -3883,13 +3888,14 @@ const ACTS = {
     // ニアポストに1人
     const near = outfield(D).find(m => !used.has(m)); if (near) { putL(near, A, .985, e.wing ? .56 : .44); used.add(near); }
     waitSettled(() => {
+      if (window.__CK) window.__CK(S);   // テスト用
       // クロスを上げる
       const px = .915, py = .5 + (Math.random() - .5) * .12;
       if (tg) putL(tg, A, px, py); if (mk) putL(mk, A, px + .01, py + .01);
       if (tg) tg.lab = true; if (mk) mk.lab = true;
       ballToL(A, px, py, 1.0, .16);
       at(1.05, advance);
-    }, 2.5);
+    }, 3);   // 全員が配置につくまで待つ（配置へは素早く動く）
     return null;
   },
   // シュート：結果ごとにボールの行き先とGKの動きが変わる
@@ -3900,7 +3906,16 @@ const ACTS = {
     s.lab = true; g.lab = true;
     let t = 0;
     if (e.type === "pk" || e.type === "fk") t = 0;
-    else t = ensureBall(s);
+    else {
+      // ボールを持っている味方が前にいるときは、シューターが前へ走り込んでから受ける（後ろへ戻すパスにしない）
+      const h = S.ball.holder;
+      if (h && h !== s && h.side === s.side) {
+        const [hx, hy] = toL(A, h.x, h.y), [sx0] = toL(A, s.x, s.y);
+        if (hx - sx0 > .05) { const ty = clamp(hy + (hy > .5 ? -.09 : .09), .25, .75), tx = Math.min(.88, hx + .03); putL(s, A, tx, ty); t = Math.min(2.2, (tx - sx0) * 105 / MV.act * 1.5 + .4); }   // 加速の時間も見込む
+      }
+      const t0 = t; at(t0, () => {}); t = t0 + (t0 ? 0 : 0);
+      if (!t0) t = ensureBall(s); else { const tt = t0; at(tt, () => ensureBall(s)); t = tt + .35; }
+    }
     // 遠すぎる位置から打たないように、シュートの地点（ペナルティエリア付近）まで持ち上がってから打つ
     if (e.type === "shot" || e.type === "thru") {
       const want = e.spot === "box" ? .84 : .75, [lx, ly] = toL(A, s.x, s.y);
@@ -4381,14 +4396,16 @@ function draw() {
 // ---------- 選手の動き ----------
 // 速度と加速度を持たせて走らせる（向きや速さが急に変わらない）。単位はメートル（ピッチ105m×68m）、時間は試合内の秒
 const LXM = 105, LYM = 68;
-const MV = { act: 14, norm: 9.5, accA: 30, accN: 18, gap: 2.4 };   // 最高速度（m/秒）・加速度・味方どうしの最低間隔（m）
+const MV = { act: 14, norm: 9.5, set: 40, accS: 160, accA: 30, accN: 18, gap: 2.4 };   // 最高速度（m/秒）・加速度・味方どうしの最低間隔（m）
 function steer(m, gx, gy, dt) {
   if (m.tx == null) { m.tx = gx; m.ty = gy; m.vx = m.vx || 0; m.vy = m.vy || 0; }
   // 目標地点そのものもなめらかに動かす（目標が急に飛んでも動きはなめらか）
   const ks = Math.min(1, dt * (m.ov ? 9 : 4));
   m.tx += (gx - m.tx) * ks; m.ty += (gy - m.ty) * ks;
   const dx = (m.tx - m.x) * LXM, dy = (m.ty - m.y) * LYM, d = Math.hypot(dx, dy);
-  const vmax = m.ov && S.phase !== "set" ? MV.act : MV.norm, slow = m.ov ? 5 : 7, amax = m.ov ? MV.accA : MV.accN;   // 人が走る速さに近づける
+  // プレーが切れて配置につくとき（セットプレー・キックオフ）は、快適さを優先して素早く動く
+  const fast = S.phase === "set" || S.phase === "kickoff";
+  const vmax = fast ? MV.set : m.ov ? MV.act : MV.norm, slow = fast ? 4 : m.ov ? 5 : 7, amax = fast ? MV.accS : m.ov ? MV.accA : MV.accN;   // 人が走る速さに近づける
   let wx = 0, wy = 0;
   if (d > .03) { const sp = vmax * Math.min(1, d / slow); wx = dx / d * sp; wy = dy / d * sp; }
   let ax = wx - m.vx, ay = wy - m.vy; const al = Math.hypot(ax, ay), lim = amax * dt;
