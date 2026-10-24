@@ -2133,6 +2133,15 @@ function makeRivalOffer() {
   if (!pool.length) return null;
   const req = pool.filter(p => p.req || (G.watch && G.watch.uid === p.uid && G.date <= G.watch.until));   // 移籍を希望している選手・他クラブのスカウトが注目している選手にはオファーが来やすい
   const target = req.length && rnd() < .6 ? choice(req) : choice(pool);
+  // ごくまれに、資金力のあるクラブが主力・期待の若手に破格の額（市場価値の2〜3倍）を提示してくる
+  if (rnd() < .05) {
+    const star = pool.filter(p => getOvr(p) >= 80 || (p.potential >= 90 && p.age <= 23)).sort((a, b) => b.value - a.value)[0];
+    if (star) {
+      const price = Math.trunc(star.value * uniform(2, 3) / 100) * 100;
+      const rich = G.teams.map((t, i) => i).filter(i => i !== G.myIdx && G.teams[i].money >= price && (G.teams[i].tier || 3) <= 2).sort((a, b) => G.teams[b].money - G.teams[a].money).slice(0, 5);
+      if (rich.length) return { teamIdx: choice(rich), pIdx: mine.roster.indexOf(star), name: star.name, price, status: "open", big: true };
+    }
+  }
   // 提示額は市場価値の0.8〜1.6倍（期待の若手は1.2〜1.6倍）。払えるクラブだけが提示する
   const mult = target.potential >= 90 && target.age <= 22 ? uniform(1.2, 1.6) : target.age <= 19 ? uniform(0.7, 1.0) : uniform(0.8, 1.4);
   const price = Math.trunc(target.value * mult / 100) * 100;
@@ -5351,7 +5360,7 @@ function offerBlock() {
   if (!o || o.status !== "open") return o && o.msg ? `<section class="card notice">${logList([o.msg])}</section>` : "";
   const m = me(); const p = findOfferPlayer(o); if (!p) return "";
   const team = G.teams[o.teamIdx];
-  return `<section class="card offer"><h2 class="ch">🔔 移籍オファーが届きました</h2>
+  return `<section class="card offer"><h2 class="ch">${o.big ? "💰 破格の移籍オファーが届きました" : "🔔 移籍オファーが届きました"}</h2>
     <p><b>${h(team.name)}</b> があなたのチームの <b>${h(p.name)}</b>（${dpsOf(p)[0]}・${p.age}歳・総合${getOvr(p)}）に興味を持っています。</p>
     <p class="small">${p.req ? `<b class="bad">😠 移籍を希望しています</b> · ` : ""}満足度 <b class="${(p.sat ?? 70) < 40 ? "bad" : (p.sat ?? 70) >= 70 ? "good" : ""}">${Math.round(p.sat ?? 70)}</b>${p.ct != null && typeof ctLeft === "function" ? ` · 契約 ${ctLeft(p) <= 1 ? `<b class="bad">今季まで</b>` : `残り${ctLeft(p)}シーズン`}` : ""}${typeof perOf === "function" ? ` · ${perOf(p)}` : ""}</p>
     <div class="offer-price"><span>提示額</span><b>${yen(o.price)}</b><small>市場価値 ${yen(p.value)}</small></div>
