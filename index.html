@@ -891,11 +891,11 @@ const MAX_ROSTER = 30;
 
 const PLAYER_SKILLS = {
   "エースストライカー": "シュート時の決定力が大幅に上昇する",
-  "ナンバー10": "パスとビジョンにボーナスが加算される",
-  "ディフェンスリーダー": "タックルとマーキングの能力が強化される",
+  "ナンバー10": "パスと視野にボーナスが加算される",
+  "ディフェンスリーダー": "タックルとマークの能力が強化される",
   "鉄壁": "鉄壁の守備力で相手を封じる",
   "スピードスター": "スピードと加速力が限界を超えて発揮される",
-  "鉄人": "試合中の疲労蓄積を抑え、怪我をしにくくなる",
+  "鉄人": "試合中の疲労蓄積を抑え、ケガをしにくくなる",
   "心臓": "スタミナ消費が激しい時間帯でも能力が落ちない",
   "スーパーサブ": "後半から出場するとチームの流れを引き寄せる",
   "バンディエラ": "高い統率力でチームをまとめ、支配力を上昇させる",
@@ -1024,14 +1024,14 @@ function getOvr(p) {
 }
 const ovrClass = v => (v >= 88 ? "t-s" : v >= 80 ? "t-a" : v >= 72 ? "t-b" : "");
 function potLabel(pot) {
-  if (pot >= 95) return "ワールドクラス (S)";
-  if (pot >= 90) return "驚異的な才能 (A+)";
-  if (pot >= 80) return "一流の素質 (A)";
-  if (pot >= 70) return "即戦力級 (B)";
-  if (pot >= 60) return "標準的な能力 (C)";
-  return "未知数 (D)";
+  if (pot >= 95) return "ワールドクラス（S）";
+  if (pot >= 90) return "驚異的な才能（A+）";
+  if (pot >= 80) return "一流の素質（A）";
+  if (pot >= 70) return "即戦力級（B）";
+  if (pot >= 60) return "標準的な能力（C）";
+  return "未知数（D）";
 }
-const potRank = pot => potLabel(pot).split(" ").pop().replace(/[()]/g, "");
+const potRank = pot => (/（([^）]+)）/.exec(potLabel(pot)) || [, ""])[1];
 const tierClass = v => (v >= 95 ? "t-s" : v >= 85 ? "t-a" : v >= 75 ? "t-b" : "");
 const potClass = pot => (pot >= 95 ? "t-s" : pot >= 90 ? "t-a" : pot >= 80 ? "t-b" : "");
 
@@ -2066,7 +2066,7 @@ function ageDecline(p) {
   // 総合値に関係しない体の能力も少し落ちる
   for (const k of ["speed", "acceleration", "stamina"]) if (!w[k] && rnd() < .5) p[k] = Math.max(20, p[k] - randint(1, 2));
   const o1 = getOvr(p);
-  return o1 < o0 ? L(`[衰退] ${p.name}（${p.age}歳）の総合値が ${o0} → ${o1} に下がった…`, "bad") : null;
+  return o1 < o0 ? L(`[衰退] ${p.name}（${p.age}歳）の総合が ${o0} → ${o1} に下がった…`, "bad") : null;
 }
 function processEvolution(p, { training = false, match = false, seasonEnd = false } = {}) {
   if (p.retired) return null;
@@ -2120,7 +2120,7 @@ function intensiveTraining(p) {
   logs.push(L(`特訓完了！ ${p.name} は限界を超えた努力を見せました！`, "good"));
   if (ups.length) logs.push(L(`能力上昇: ${ups.join("、")}`, "good"));
   else logs.push(L(`能力は伸びませんでした（才能の限界付近）。`));
-  if (gained) logs.push(L(`覚醒: 新スキル【${p.skill}】を習得しました！`, "rare"));
+  if (gained) logs.push(L(`覚醒：新スキル【${p.skill}】を習得しました！`, "rare"));
   if (rnd() < 0.03) {
     const days = randint(14, 30);
     p.injury_days = days;
@@ -2331,10 +2331,10 @@ function randomEvent(me) {
   const nextOpp = (() => { try { const st = myLeague(), list = divTeams(t.division); for (const [hi, ai] of st.schedule[st.round] || []) { if (list[hi] === t) return list[ai]; if (list[ai] === t) return list[hi]; } } catch (e) {} return null; })();
   const E = [
     ["talent", 2, () => { const c = act.filter(p => p.age <= 25 && !p.legend && p.reborn == null); if (!c.length) return null; const p = choice(c); p.potential = Math.min(105, p.potential + randint(5, 10));
-      return [L(`【才能開花】コーチが ${p.name} の隠れた才能を見抜きました！`, "rare"), L(`将来性が大幅に向上！（ランク: ${potLabel(p.potential)}）`, "rare")]; }],
+      return [L(`【才能開花】コーチが ${p.name} の隠れた才能を見抜きました！`, "rare"), L(`将来性が大幅に向上！（ランク：${potLabel(p.potential)}）`, "rare")]; }],
     ["slump", 2, () => { const c = act.filter(p => p.age <= 27 && !p.legend && p.reborn == null && p.potential > getOvr(p) + 4); if (!c.length) return null; const p = choice(c); p.potential = Math.max(getOvr(p) + 2, p.potential - randint(3, 7));
       return [L(`【停滞】${p.name} はスランプに陥り、自信を失っているようです…`, "bad"), L("成長の限界が少し早まったかもしれません。")]; }],
-    ["rumor", 2, () => { t.scout_boost = true; return [L("「近隣の学校にすごい中学生がいる」との噂を耳にしました。"), L("次回のスカウト調査で有望な選手が見つかりやすくなるかも…？", "rare")]; }],
+    ["rumor", 2, () => { t.scout_boost = true; return [L("「近隣の高校にすごい選手がいる」との噂を耳にしました。"), L("次回のスカウト調査で有望な選手が見つかりやすくなるかも…？", "rare")]; }],
     ["donation", 7, () => { const a = r10(randint(1000, 2500) * sc); t.money += a; return [L(`地元企業から協賛金が届きました。資金 +${yen(a)}`, "good")]; }],
     ["injury", 8 * medInjury(lv("medical")) * (1 - .1 * phys), () => { if (!ok.length) return null; const p = choice(ok), d = randint(3, 10); p.injury_days = d; return [L(`不運！ ${p.name} が練習中に転倒。全治${d}日のケガ`, "bad")]; }],
     ["extra", 9, () => { if (!ok.length) return null; const p = choice(ok), reps = [];
@@ -3235,7 +3235,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       S_[S_.indexOf(out)] = ss; P_.set(out, 1); P_.set(ss, 2); SL.set(ss, SL.get(out));
       (sd === "home" ? hPlayed : aPlayed).push(ss);
       if (sd === "home") hT = teamStats(hS); else aT = teamStats(aS);
-      if (verbose) { yield { t: "aisub", side: sd, out, in: ss }; yield { ...ev(45, `交代（${team.name}）: ${out.name} ↓ / ${ss.name} ↑　切り札のスーパーサブ投入！`, "info", 700), who: ss }; }
+      if (verbose) { yield { t: "aisub", side: sd, out, in: ss }; yield { ...ev(45, `交代（${team.name}）：${out.name} ↓ / ${ss.name} ↑　切り札のスーパーサブ投入！`, "info", 700), who: ss }; }
     }
     if (scene === 5 && verbose && playerTeam) {
       // 控え：ケガ・出場停止の選手は出られない
@@ -3266,12 +3266,12 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       if (p.skill === "鉄人") ic *= 0.3;
       if (rnd() < ic / 100) {
         if (rnd() < 0.02) {
-          p.injury_days = randint(180, 360); p.bigInj = (p.bigInj || 0) + 2;   // 重傷は大けが2回ぶん
+          p.injury_days = randint(180, 360); p.bigInj = (p.bigInj || 0) + 2;   // 重傷は大ケガ2回ぶん
           if (verbose && mine) post.push(L(`🚑【重傷】${p.name} がピッチに倒れ込みました…靭帯断裂等の重傷。全治 ${p.injury_days}日（長期離脱）`, "bad"));
-          if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大けが（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad"));
+          if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大ケガ（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad"));
         } else {
-          p.injury_days = randint(3, 40); if (p.injury_days >= 30) { p.bigInj = (p.bigInj || 0) + 1; if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大けが（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad")); }
-          if (verbose && mine) post.push(L(`⚠️ 負傷退場: ${p.name}（全治 ${p.injury_days}日）`, "bad"));
+          p.injury_days = randint(3, 40); if (p.injury_days >= 30) { p.bigInj = (p.bigInj || 0) + 1; if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大ケガ（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad")); }
+          if (verbose && mine) post.push(L(`⚠️ 負傷退場：${p.name}（全治 ${p.injury_days}日）`, "bad"));
         }
       }
     }
@@ -3380,7 +3380,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   home.money += hRew; away.money += aRew;
   const logs = [];
   if (playerTeam === home) {
-    logs.push(L(`🎟️ ホームゲーム収入（チケット）: +${yen(ticket)}（観客 ${tk.att.toLocaleString()}人${tk.full ? "・満員" : ""}）`, "good"));
+    logs.push(L(`🎟️ ホームゲーム収入（チケット）：+${yen(ticket)}（観客 ${tk.att.toLocaleString()}人${tk.full ? "・満員" : ""}）`, "good"));
     if (hRew - ticket > 0) logs.push(L(`💰 試合報酬: +${yen(hRew - ticket)}`, "good"));
   } else if (playerTeam === away && aRew > 0) logs.push(L(`💰 試合報酬: +${yen(aRew)}`, "good"));
   logs.push(...post);
@@ -3553,7 +3553,7 @@ function seasonRollover(y) {
       }
       if (rnd() < injRetireP(p)) {   // 大けがを繰り返した選手は、引退を選ぶことがある
         p.retired = true;
-        if (team === mine) logs.push(L(`【悲報】${p.name}（${p.age}歳）が度重なる大けが（${p.bigInj}回）の影響で、現役引退を発表しました…`, "bad"));
+        if (team === mine) logs.push(L(`【悲報】${p.name}（${p.age}歳）が度重なる大ケガ（${p.bigInj}回）の影響で、現役引退を発表しました…`, "bad"));
       } else {
         const r = processEvolution(p, { seasonEnd: true });
         if (r && team === mine) logs.push(r);
@@ -5589,7 +5589,7 @@ function renderHome() {
   }
   if (d.phase === "sunday") {
     return `${wk}${offerBlock()}
-      <section class="day-hero"><span class="dow">日</span><div><b>休養日</b><small>${d.window ? "移籍市場オープン中（1・7・8月）" : "移籍市場は閉まっています"}</small></div></section>
+      <section class="day-hero"><span class="dow">日</span><div><b>休養日</b><small>${d.window ? "移籍市場オープン中（7・8月と1月）" : "移籍市場は閉まっています"}</small></div></section>
       ${feed}
       ${d.window ? `<button class="btn wide" data-act="sheet" data-arg="market">移籍リストを見る</button>` : ""}
       ${nextBar("end-week", "新しい一週間へ")}`;
@@ -5717,7 +5717,7 @@ function matchPrep(kind) {
       ${typeof headlineHTML === "function" ? headlineHTML(m, t, kind) : ""}
       <p class="opp-tac"><span>相手の戦術</span><b>${tacText(t)}</b></p>
       ${typeof anaReport === "function" ? anaReport(t) : ""}
-      ${!opp.home ? `<p class="muted small">アウェイでは攻撃の成功率が下がります。</p>` : ""}`;
+      ${!opp.home ? `<p class="muted small">アウェイでは中盤の主導権を握りにくくなります。</p>` : ""}`;
   })() : `<p>あなたのチームはすでに敗退しています。</p>`;
   const bracket = kind === "cup" ? cupBracketBlock() : "";
   return `<section class="day-hero match"><span class="dow">${kind === "cup" ? "杯" : DOW[weekday(D(G.date))]}</span><div><b>${title}</b><small>${kind === "cup" ? `残り${G.cup_teams.length}チーム` : "試合当日"}</small></div></section>
@@ -5805,8 +5805,8 @@ function renderSeasonEnd() {
   // 最終順位は自分のリーグだけ（もう一方のリーグの優勝クラブは1行で）
   if (step === 0 || step === 1) { const d1 = c.my.div === 1;
     return `<section class="day-hero trophy"><span class="dow">終</span><div><b>シーズン全日程 終了</b><small>最終順位の発表</small></div></section>
-    <section class="card"><h2 class="ch">${h(d1 ? c.l1 : c.l2)} 最終結果</h2>${standingsTable(d1 ? c.d1 : c.d2)}<p>${h(d1 ? c.l1 : c.l2)}優勝: <b>${h(d1 ? c.champ1 : c.champ2)}</b> ${d1 ? "🏆" : "🎊"}</p><p class="muted small">${h(d1 ? c.l2 : c.l1)}優勝: ${h(d1 ? c.champ2 : c.champ1)}</p></section>${nav("あなたの成績へ")}`; }
-  if (false) return `<section class="card"><h2 class="ch">${h(c.l1)} 最終結果</h2>${standingsTable(c.d1)}<p>${h(c.l1)}優勝: <b>${h(c.champ1)}</b> 🏆</p></section>${nav("あなたの成績へ")}`;
+    <section class="card"><h2 class="ch">${h(d1 ? c.l1 : c.l2)} 最終結果</h2>${standingsTable(d1 ? c.d1 : c.d2)}<p>${h(d1 ? c.l1 : c.l2)}優勝：<b>${h(d1 ? c.champ1 : c.champ2)}</b> ${d1 ? "🏆" : "🎊"}</p><p class="muted small">${h(d1 ? c.l2 : c.l1)}優勝：${h(d1 ? c.champ2 : c.champ1)}</p></section>${nav("あなたの成績へ")}`; }
+  if (false) return `<section class="card"><h2 class="ch">${h(c.l1)} 最終結果</h2>${standingsTable(c.d1)}<p>${h(c.l1)}優勝：<b>${h(c.champ1)}</b> 🏆</p></section>${nav("あなたの成績へ")}`;
   if (step === 2) return `<section class="card final-me"><h2 class="ch">あなたのシーズン成績</h2>
       <dl class="kv"><dt>所属リーグ</dt><dd>${h(c.my.div === 1 ? c.l1 : c.l2)}</dd><dt>最終順位</dt><dd><b>${c.my.rank}位</b></dd><dt>獲得賞金</dt><dd class="good">+${yen(c.my.amt)}</dd><dt>所持金</dt><dd>${yen(c.moneyAfterPrize)}</dd></dl></section>${mgrEvalCard(c.mgrEval)}${nav("昇格・降格の発表へ")}`;
   // 昇格・降格：自分の国を先頭に、全リーグまとめて
@@ -5855,7 +5855,7 @@ function renderTable() {
   if (key === "cup") {
     const cd = cupDates(G.season_year);
     const sched = Object.entries(cd).map(([ds, n]) => `<li class="${ds < G.date ? "past" : ""}"><span>${shortDate(ds)}</span><b>${n}</b></li>`).join("");
-    inner = `<p class="muted small">5大リーグの上位32クラブによるノックアウト方式。</p><ul class="cupdates">${sched}</ul>${G.cup_teams.length > 1 ? cupBracketBlock() : `<p>今季の${CUP_NAME}は終了しました。優勝: <b>${h(G.teams[G.cup_teams[0]].name)}</b></p>`}`;
+    inner = `<p class="muted small">5大リーグの上位32クラブによるノックアウト方式。</p><ul class="cupdates">${sched}</ul>${G.cup_teams.length > 1 ? cupBracketBlock() : `<p>今季の${CUP_NAME}は終了しました。優勝：<b>${h(G.teams[G.cup_teams[0]].name)}</b></p>`}`;
   } else {
     const cid = key.slice(0, 3), d = Number(key.slice(3));
     const played = G.lg[key].round, total = G.lg[key].schedule.length;
@@ -5881,7 +5881,7 @@ function renderNow() {
   const chips = `<div class="chiprow">${modes.map(([k, l]) => `<button class="${mode === k ? "on" : ""}" data-act="scorer-mode" data-arg="${k}">${h(l)}</button>`).join("")}</div>`;
   if (mode === "news") {
     const news = G.news || [];
-    return chips + `<h2 class="ch">移籍ニュース<small>移籍期間（1・7・8月）の日曜日に成立</small></h2>` + (news.length ? `<ul class="news">${news.slice(0, 150).map(n => `<li><span class="nd">${shortDate(n.date)}</span><div><b>${n.legend ? "🌟 " : ""}${h(n.name)}</b><small>${n.pos}・${n.age}歳・総合${n.ovr}</small><span>${h(n.from)} → ${h(n.to)}</span></div><em>${yen(n.fee)}</em></li>`).join("")}</ul>` : `<p class="muted">まだ移籍は成立していません。移籍期間の日曜日にクラブ同士の移籍が発生します。</p>`);
+    return chips + `<h2 class="ch">移籍ニュース<small>移籍期間（7・8月と1月）の日曜日に成立</small></h2>` + (news.length ? `<ul class="news">${news.slice(0, 150).map(n => `<li><span class="nd">${shortDate(n.date)}</span><div><b>${n.legend ? "🌟 " : ""}${h(n.name)}</b><small>${n.pos}・${n.age}歳・総合${n.ovr}</small><span>${h(n.from)} → ${h(n.to)}</span></div><em>${yen(n.fee)}</em></li>`).join("")}</ul>` : `<p class="muted">まだ移籍は成立していません。移籍期間の日曜日にクラブ同士の移籍が発生します。</p>`);
   }
   const st = T.statKind || "goals";
   const title = mode === "cup" ? CUP_NAME : leagueName(mode.slice(0, 3), Number(mode.slice(3)));
@@ -5914,11 +5914,11 @@ function renderHistory() {
 const HAS_CLOUD = () => !!(window.claude && window.claude.use);
 function renderMenu() {
   const m = me(); const f = m.facilities;
-  const cloud = Cloud.ready ? (Cloud.meta ? `クラウド保存: ${new Date(Cloud.meta.savedAt).toLocaleString("ja-JP")}` : "クラウド保存: まだありません") : "クラウド保存は claude.ai 上で開いたときに使えます";
+  const cloud = Cloud.ready ? (Cloud.meta ? `クラウド保存：${new Date(Cloud.meta.savedAt).toLocaleString("ja-JP")}` : "クラウド保存：まだありません") : "クラウド保存は claude.ai 上で開いたときに使えます";
   const conf = T.confirm === "reset";
   return `<section class="card"><h2 class="ch">クラブ</h2>
       <dl class="kv"><dt>資金</dt><dd class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</dd><dt>所属</dt><dd>${h(leagueName(G.country, m.division))} ${myRank()}位</dd><dt>シーズン</dt><dd>${G.season_year}/${G.season_year + 1}</dd>
-      <dt>施設</dt><dd>医療 Lv${f.medical} · ジム Lv${f.training} · ユース Lv${f.youth}</dd>
+      <dt>施設</dt><dd>医療 Lv.${f.medical} · ジム Lv.${f.training} · ユース Lv.${f.youth}</dd>
       <dt>ファン</dt><dd>${(m.fans || 0).toLocaleString()}人</dd><dt>スタジアム</dt><dd>${(m.stadium || 0).toLocaleString()}人収容${m.stadiumBuild ? `（拡張工事中・あと${m.stadiumBuild.weeks}週）` : ""}</dd></dl></section>
     ${mgrCard()}
     <section class="card"><h2 class="ch">歴史と実績</h2>
@@ -5998,7 +5998,7 @@ const SHEETS = {
         ${p.legend ? `<div class="legendbox"><b>🌟 レジェンド</b><span>${p.age <= 22 && getOvr(p) < (LEGEND_BY_ID[p.legend] || [])[6] - 3 ? `のちの伝説となる若き才能。ふつうの選手より速く成長し、25歳ごろまでに全盛期（総合${(LEGEND_BY_ID[p.legend] || [])[6]}前後）の姿へ近づきます。` : "往年の名選手が全盛期の姿で登場。年齢とともに能力は少しずつ落ちていきます。"}</span></div>` : ""}
         ${p.reborn != null ? `<div class="legendbox"><b>🔁 転生</b><span>引退したかつての選手が、若者として生まれ変わった姿。${p.age <= 25 ? `ふつうの選手より速く成長し、25歳ごろまでに総合${peakOf(p)._ovr}前後まで伸びる見込みです（生まれ変わるたびに、元の選手より強くなることも弱く終わることもあります）。` : "全盛期の力を持っています。"}</span></div>` : ""}
         ${p.skill ? `<div class="skillbox ${p.is_rare ? "rare" : ""}"><b>【${h(p.skill)}】</b><span>${h(PLAYER_SKILLS[p.skill] || "")}</span></div>` : ""}
-        <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>ポジション</dt><dd>${dpsOf(p).join("・")}</dd><dt>利き足</dt><dd>${(p.foot || "R") === "L" ? "左" : "右"}足 · 逆足 ${"★".repeat(p.wf || 3)}${"☆".repeat(5 - (p.wf || 3))}</dd><dt>市場価値</dt><dd>${yen(p.value)}</dd>${p.bigInj ? `<dt>大けが</dt><dd class="bad">${p.bigInj}回（全治30日以上・重傷は2回分）</dd>` : ""}<dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
+        <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>ポジション</dt><dd>${dpsOf(p).join("・")}</dd><dt>利き足</dt><dd>${(p.foot || "R") === "L" ? "左" : "右"}足 · 逆足 ${"★".repeat(p.wf || 3)}${"☆".repeat(5 - (p.wf || 3))}</dd><dt>市場価値</dt><dd>${yen(p.value)}</dd>${p.bigInj ? `<dt>大ケガ</dt><dd class="bad">${p.bigInj}回（全治30日以上・重傷は2回分）</dd>` : ""}<dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
         <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days || p.susp > 0 ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : p.susp > 0 ? `出場停止（あと${p.susp}試合）` : "良好"}</dd>
         <dt>今季</dt><dd>リーグ ${p.league_goals}点${p.league_assists || 0}A · カップ ${p.cup_goals}点${p.cup_assists || 0}A</dd>
         ${perRows(p)}${p.fa ? `<dt>父</dt><dd>🧬 ${h(p.fa)}</dd>` : ""}${p.hg ? `<dt>出身</dt><dd>🎓 ${h(p.hg)}のユース</dd>` : ""}<dt>通算</dt><dd>${p.career_apps || 0}試合 / ${(p.career_league_goals || 0) + (p.career_cup_goals || 0)}得点 / ${p.career_assists || 0}アシスト</dd>${awardText(p) ? `<dt>受賞歴</dt><dd>${h(awardText(p))}</dd>` : ""}</dl>
@@ -6010,7 +6010,7 @@ const SHEETS = {
   formation() {
     const m = me();
     return { title: "フォーメーション", body: `<div class="fgrid">${Object.entries(FORMATIONS).map(([k, v]) => `<button class="${m.formation === k ? "on" : ""}" data-act="set-form" data-arg="${k}"><b>${k}</b><small>DF${v.DF} MF${v.MF} FW${v.FW}</small></button>`).join("")}</div>
-      <p class="muted small">スタメンを手動で選んでいる場合は、変更するとおまかせに戻ります。</p>` };
+      <p class="muted small">先発を手動で選んでいる場合は、変更するとおまかせに戻ります。</p>` };
   },
   starters(s) {
     const m = me(); const req = FORMATIONS[m.formation];
@@ -6022,7 +6022,7 @@ const SHEETS = {
     const cands = need ? avail.slice().sort((a, b) => ((a.pos !== need.pos) - (b.pos !== need.pos)) || b.value - a.value) : [];
     const slotHtml = slots.map((sl, i) => { const p = s.picked[i]; return `<button class="slot ${i === cur ? "cur" : ""} ${p ? "full" : ""}" data-act="st-slot" data-arg="${i}"><span class="pos pos-${sl.pos}">${sl.pos}</span>${p ? `<b>${h(p.name)}</b><small>${getOvr(p)}</small>` : `<b class="muted">${i === cur ? "選択中" : "—"}</b>`}</button>`; }).join("");
     return {
-      title: `スタメン選択（${m.formation}）`,
+      title: `先発の選択（${m.formation}）`,
       body: `<div class="slots">${slotHtml}</div>
         ${need ? `<h3 class="sh">${need.pos} を選んでください（${need.n}/${need.c}人目）<small>★=適正ポジション</small></h3>${rowHead()}<div class="plist">${cands.map((p, i) => playerRow(p, { act: "st-pick", idx: m.roster.indexOf(p), right: `<span class="pcond">${p.pos === need.pos ? "★ " : ""}${p.condition}%</span>` })).join("")}</div>
           ${!cands.length ? `<p class="bad">選べる選手がいません。</p>` : ""}` : `<p class="good">11人が揃いました。</p>`}
@@ -6062,7 +6062,7 @@ const SHEETS = {
       return { title: "個別特訓", body: `<div class="pd-top"><span class="pos pos-${p.pos} lg">${p.pos}</span><div class="pd-id"><b>${h(p.name)}</b><small>${p.age}歳 · 体力 ${p.condition}%</small></div><div class="pd-ovr ${ovrClass(getOvr(p))}"><small>総合</small>${getOvr(p)}</div></div>
         <p>体力 -45・疲労 +25 と引き換えに、1〜3項目の能力が上がります（23歳以下はよく伸び、30歳を過ぎると伸びにくくなります）。スキル未所持ならまれに覚醒（${(INT_SKILL(p) * (intRecent(p) ? 50 : 100)).toFixed(1)}%）。3%でオーバーワークによる負傷のリスクがあります。</p>
         ${intRecent(p) ? `<p class="bad small">前回の特訓から1週間たっていないため、効果は半分になります。</p>` : ""}
-        ${ok ? `<button class="btn primary wide" data-act="int-go">この選手を強化指定する</button>` : `<p class="bad">体力が足りません（必要: 50以上）。休養させてください。</p>`}
+        ${ok ? `<button class="btn primary wide" data-act="int-go">この選手を強化指定する</button>` : `<p class="bad">体力が足りません（必要：50以上）。休養させてください。</p>`}
         <button class="btn ghost wide" data-act="int-back">選び直す</button>` };
     }
     return { title: "個別特訓（特別強化指定）", body: `<p class="muted small">体力 -45 | 能力が大幅UP | 稀にスキル習得。実行すると1日が進みます。</p>${rowHead()}<div class="plist">${list.map(p => playerRow(p, { act: "int-pick", idx: m.roster.indexOf(p) })).join("")}</div>` };
@@ -6081,7 +6081,7 @@ const SHEETS = {
   },
   scout(s) {
     const m = me();
-    if (m.scout_status === "SEARCHING") return { title: "ユーススカウト", body: `<p>現在スカウトが各地を飛び回っています。報告まであと <b>${m.scout_timer}</b> 日です。${m.scout_target_pos ? `（ターゲット: ${m.scout_target_pos}）` : ""}</p>` };
+    if (m.scout_status === "SEARCHING") return { title: "ユーススカウト", body: `<p>現在スカウトが各地を飛び回っています。報告まであと <b>${m.scout_timer}</b> 日です。${m.scout_target_pos ? `（ターゲット：${m.scout_target_pos}）` : ""}</p>` };
     if (m.scout_status === "READY") {
       return { title: "スカウト報告：発掘された逸材", body: `<p class="muted small">1人だけ獲得できます。獲得すると報告は終了します。</p>${rowHead()}<div class="plist">${m.scout_candidates.map((p, i) => playerRow(p, { act: "scout-view", idx: i })).join("")}</div>
         <div class="row2"><button class="btn ghost" data-act="sheet-close">保持して戻る</button><button class="btn ghost dangertxt" data-act="scout-discard">報告を破棄する</button></div>` };
@@ -6090,7 +6090,7 @@ const SHEETS = {
     const posBtns = [["FW", "FW"], ["MF", "MF"], ["DF", "DF"], ["GK", "GK"], ["", "指定なし"]];
     return { title: "ユーススカウト派遣", body: `
       <h3 class="sh">国内調査（${yen(SCOUT_DOM.cost)} · ${SCOUT_DOM.days}日間）</h3>
-      <button class="act ${sel === "1" ? "on" : ""}" data-act="scout-dest" data-arg="1" style="width:100%"><b>国内調査</b><small>地元の若手が中心（7割が自国籍）。将来性は最高でもAまで</small></button>
+      <button class="act ${sel === "1" ? "on" : ""}" data-act="scout-dest" data-arg="1" style="width:100%"><b>国内調査</b><small>地元の若手が中心（7割が自国籍）。将来性は最高でもA+まで</small></button>
       ${regionScoutButtons(sel)}
       ${sel ? `<h3 class="sh">どのポジションを重点的に探しますか？</h3><div class="seg wide">${posBtns.map(([k, l]) => `<button data-act="scout-go" data-arg="${k}">${l}</button>`).join("")}</div>` : ""}
       ${m.scout_boost ? `<p class="rare small">噂の逸材の情報があります。次の調査で有望な選手が見つかりやすくなります。</p>` : ""}
@@ -6099,7 +6099,7 @@ const SHEETS = {
   facility(s) {
     const m = me(); const f = m.facilities;
     const rows = [["medical", "メディカルセンター", "ケガを減らし、治りを早くする"], ["training", "トレーニングジム", "練習と個別特訓の伸びUP"], ["youth", "ユースアカデミー", "スカウト候補の才能と人数UP"]];
-    return { title: "クラブ施設投資", body: `<p>予算: <b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b></p>
+    return { title: "クラブ施設投資", body: `<p>予算：<b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b></p>
       ${rows.map(([k, n, d]) => { const lv = f[k], cost = facCost(lv); const conf = s.confirm === k;
         return `<div class="fac"><div><b>${n}</b><small>${d}</small><span class="pips">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `<i class="${i <= lv ? "on" : ""}"></i>`).join("")} Lv.${lv}</span></div>
           ${lv >= FAC_MAX ? `<span class="chip">最大</span>` : conf ? `<div class="row2"><button class="btn ghost sm" data-act="fac-cancel">やめる</button><button class="btn primary sm" data-act="fac-go" data-arg="${k}">${yen(cost)}で強化</button></div>`
@@ -6113,7 +6113,7 @@ const SHEETS = {
     const m = me();
     if (!T.market || T.marketDate !== G.date) buildMarket();
     const msg = s.msg ? logList([s.msg]) : "";
-    return { title: "移籍市場：本日のリスト", body: `<p>現在の所持金: <b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b> · 登録 ${m.roster.length}/${MAX_ROSTER}</p>${msg}
+    return { title: "移籍市場：本日のリスト", body: `<p>現在の所持金：<b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b> · 登録 ${m.roster.length}/${MAX_ROSTER}</p>${msg}
       <button class="btn wide" data-act="sheet" data-arg="psearch">🔍 選手を探す（他クラブへ獲得オファー${inWindow() ? "" : "・移籍期間外"}）</button>
       <div class="mlist">${T.market.map((it, i) => marketRow(it, i, m.money)).join("")}</div>
       ${!T.market.length ? `<p class="muted">リストに残っている選手はいません。</p>` : ""}` };
@@ -6219,8 +6219,8 @@ const ACTIONS = {
   "set-form"(k) { changeFormation(k); T.starters = null; persist(); closeSheet(); render(); toast(`フォーメーションを ${k} に変更しました`); },
   "st-slot"(i) { const s = topSheet(); s.picked = s.picked.slice(0, Number(i)); renderSheet(); },
   "st-pick"(i) { const s = topSheet(); s.picked.push(me().roster[Number(i)]); renderSheet(); },
-  "st-auto"() { T.starters = null; closeSheet(); toast("スタメンをおまかせに戻しました"); },
-  "st-done"() { const s = topSheet(); if (s.picked.length === 11) { T.starters = s.picked.slice(); closeSheet(); toast("スタメンを決定しました"); } },
+  "st-auto"() { T.starters = null; closeSheet(); toast("先発をおまかせに戻しました"); },
+  "st-done"() { const s = topSheet(); if (s.picked.length === 11) { T.starters = s.picked.slice(); closeSheet(); toast("先発を決定しました"); } },
   "focus-pick"(i) { const p = me().roster[Number(i)]; if (p.legend) { toast("レジェンドは育成方針を変えられません"); return; } openSheet({ kind: "focus", p }); },
   "set-focus"(k) { const s = topSheet(); s.p.focus = k === "auto" ? null : k; persist(); closeSheet(); toast(`${s.p.name} の育成方針：${FOCUS[k].name}`); },
   "int-pick"(i) { topSheet().p = me().roster[Number(i)]; renderSheet(); },
@@ -6249,7 +6249,7 @@ const ACTIONS = {
     T.market.splice(s.idx, 1);
     let msg;
     if (rnd() < 0.10) {
-      msg = L(`❌ 移籍破談: ${choice(["選手との個人合意に達しませんでした（給料の条件が合いませんでした）。", "メディカルチェックの結果、過去の負傷箇所に懸念が見つかりました。", "他クラブがより好条件を提示し、選手を強奪されました。", "労働許可証（ワークパーミット）の発行が却下されました。"])}`, "bad");
+      msg = L(`❌ 移籍破談：${choice(["選手との個人合意に達しませんでした（給料の条件が合いませんでした）。", "他クラブがより好条件を提示し、選手を強奪されました。", ...(p.bigInj ? ["メディカルチェックの結果、過去のケガの箇所に懸念が見つかりました。"] : [])])}`, "bad");
     } else {
       m.money -= it.free ? 0 : p.value;
       if (it.free) { const k = (G.freeAgents || []).indexOf(p); if (k >= 0) G.freeAgents.splice(k, 1); p.ct = null; p.wage = null; }
@@ -6442,10 +6442,10 @@ SHEETS.sponsor = s => {
     ${full ? `<p class="bad small">契約は最大${SP_MAX}社までです。先に契約中のスポンサーを解約してください。</p>` : ""}
     <div class="splist">${m.sp_cands.map((x, i) => `<div class="sprow"><div><b>${h(x.name)}</b><small>${SP_TYPES[x.type].name} · ${x.weeks}週契約 · 合計${yen(x.weekly * x.weeks)}</small></div><span class="good">週${yen(x.weekly)}</span><button class="btn primary sm" data-act="sp-sign" data-arg="${i}" ${full ? "disabled" : ""}>契約</button></div>`).join("")}</div>
     <button class="btn ghost wide dangertxt" data-act="sp-discard">候補をすべて断る</button>${cur}` };
-  return { title: "スポンサー探し", body: `<p>予算: <b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b></p>
+  return { title: "スポンサー探し", body: `<p>予算：<b class="${m.money < 0 ? "bad" : ""}">${yen(m.money)}</b></p>
     <div class="splist">${Object.entries(SP_TYPES).map(([k, t]) => `<button class="act ${s.confirm === k ? "on" : ""}" data-act="sp-ask" data-arg="${k}" ${m.money < t.cost && k !== "local" ? "disabled" : ""}><b>${t.name}</b><small>費用 ${yen(t.cost)} · ${t.days}日 · 週${yen(t.min)}〜${yen(t.max)}</small></button>`).join("")}</div>
     ${s.confirm ? `<div class="confirm"><p>${SP_TYPES[s.confirm].name}を探しますか？（${yen(SP_TYPES[s.confirm].cost)}・${SP_TYPES[s.confirm].days}日）</p><div class="row2"><button class="btn ghost" data-act="sp-ask" data-arg="">やめる</button><button class="btn primary" data-act="sp-go" data-arg="${s.confirm}">探しに行く</button></div></div>` : ""}
-    <p class="muted small">地元企業は資金が足りなくても探せます（費用は借金になります）。金額は1部リーグの目安です。2部は0.6倍、探し終えた時点の順位が4位以内なら1.2倍、下位3チームなら0.8倍になります。</p>${cur}` };
+    <p class="muted small">地元企業は資金が足りなくても探せます（費用は借金になります）。金額は1部リーグの目安です。2部は0.6倍、探し終えた時点の順位が4位以内なら1.2倍、下位3チームなら0.8倍になります。ファンが多いクラブほど高く（0.5〜1.6倍）なります。</p>${cur}` };
 };
 Object.assign(ACTIONS, {
   "sp-ask"(k) { topSheet().confirm = k || null; renderSheet(); },
@@ -6547,7 +6547,7 @@ function renderTactics() {
   return `${tacMatchBanner()}<section class="card"><div class="ch-row"><h2 class="ch">フォーメーション<small>先発平均 ${avg}</small></h2></div>
       <div class="fchips">${Object.keys(FORMATIONS).map(k => `<button class="${m.formation === k ? "on" : ""}" data-act="tac-form" data-arg="${k}">${k}</button>`).join("")}</div>
       <div class="tboard"><div class="tlines"></div>${board}</div>
-      <p class="muted small">${T.tacSel != null && players[T.tacSel] ? `<b>${h(players[T.tacSel].name)}</b> を選択中：入れ替える先発の選手か、下の控えの選手をタップ（もう一度タップで取り消し）` : "選手をタップして選び、続けて別の選手をタップすると入れ替わります。長押しで選手の詳細。"}${players.some((p, i) => p && p.pos !== slots[i].role) ? `<span class="bad">赤い枠は本来のポジションではない選手です。</span>` : ""}${auto.length ? `<br><span class="bad">けが人などがいたため、点線の位置は自動で入れ替えています。</span>` : ""}</p>
+      <p class="muted small">${T.tacSel != null && players[T.tacSel] ? `<b>${h(players[T.tacSel].name)}</b> を選択中：入れ替える先発の選手か、下の控えの選手をタップ（もう一度タップで取り消し）` : "選手をタップして選び、続けて別の選手をタップすると入れ替わります。長押しで選手の詳細。"}${players.some((p, i) => p && p.pos !== slots[i].role) ? `<span class="bad">赤い枠は本来のポジションではない選手です。</span>` : ""}${auto.length ? `<br><span class="bad">ケガ人などがいたため、点線の位置は自動で入れ替えています。</span>` : ""}</p>
       <h3 class="sh">控え</h3><div class="subgrid tbench">${bench.map(bRow).join("")}</div>
       <button class="btn ghost wide" data-act="tac-auto">おまかせで並べる</button></section>
     <section class="card"><h2 class="ch">攻撃スタイル</h2>
@@ -7051,7 +7051,7 @@ function academyReport() {
   while (cands.length < n) cands.push(makeAcademyPlayer(m, cands.length));
   for (const p of cands) p.hg = m.name;
   m.academy = cands;
-  const logs = [L(`🎓【ユース】アカデミーから昇格候補が ${n} 人報告されました（ユースLv${yl}）。`, "rare")];
+  const logs = [L(`🎓【ユース】アカデミーから昇格候補が ${n} 人報告されました（ユースアカデミー Lv.${yl}）。`, "rare")];
   for (const p of cands) if (p.fa) logs.push(L(`🧬 その中には、クラブの伝説 ${p.fa} の息子 ${p.name} もいます！`, "rare"));
   return logs;
 }
@@ -7063,7 +7063,7 @@ SHEETS.academy = () => {
   const m = me(), c = m.academy || [];
   if (!c.length) return { title: "🎓 ユース昇格候補", body: `<p class="muted">今年の候補はもういません。毎年3月にアカデミーから報告が来ます。</p>` };
   const full = m.roster.length >= MAX_ROSTER;
-  return { title: "🎓 ユース昇格候補", body: `<p class="muted small">昇格させるとトップチームに加わります（移籍金なし）。見送った選手は国内の他クラブへ移ります。ユース施設のレベルが高いほど、候補の人数と将来性が上がります。</p>
+  return { title: "🎓 ユース昇格候補", body: `<p class="muted small">昇格させるとトップチームに加わります（移籍金なし）。見送った選手は国内の他クラブへ移ります。ユースアカデミーのレベルが高いほど、候補の人数と将来性が上がります。</p>
     ${full ? `<p class="bad">チームが満員（${MAX_ROSTER}人）です。昇格させるには先に枠を空けてください。</p>` : ""}
     ${rowHead()}${c.map((p, i) => `<div class="acad">${playerRow(p, { act: "acad-view", idx: i })}${p.fa ? `<p class="small">🧬 父：<b>${h(p.fa)}</b></p>` : ""}<div class="row2"><button class="btn ghost sm" data-act="acad-pass" data-arg="${i}">見送る</button><button class="btn primary sm" data-act="acad-up" data-arg="${i}" ${full ? "disabled" : ""}>昇格させる</button></div></div>`).join("")}` };
 };
@@ -7725,7 +7725,7 @@ Object.assign(ACTIONS, {
 });
 ACH.push(
   ["wc_coach", "世界一の監督", "代表監督としてW杯で優勝する", "記録"],
-  ["rep90", "名将の誉れ", "監督の評判を90以上にする", "記録"],
+  ["rep90", "名声", "監督の評判を90以上にする", "記録"],
 );
 for (const a of ACH.slice(-2)) ACH_BY[a[0]] = a;
 
@@ -8027,7 +8027,7 @@ SHEETS.psearch = s => {
     <label class="pssel">リーグ <select id="psLg">${lgOpts.map(([v, l]) => `<option value="${v}" ${s.lg === v ? "selected" : ""}>${h(l)}</option>`).join("")}</select></label>
     ${chips("foot", [["", "利き足すべて"], ["R", "右足"], ["L", "左足"]])}
     ${chips("pot", [[0, "将来性すべて"], [70, "B以上"], [80, "A以上"], [90, "A+以上"], [95, "S"]])}
-    ${chips("sort", [["ovr", "総合値順"], ["pot", "将来性順"], ["young", "若い順"], ["cheap", "安い順"], ["exp", "高い順"]])}
+    ${chips("sort", [["ovr", "総合順"], ["pot", "将来性順"], ["young", "若い順"], ["cheap", "安い順"], ["exp", "高い順"]])}
   </div>` : "";
   return { title: "🔍 選手を探す", body: `${inWindow() ? "" : `<p class="muted small">今は移籍期間外です（オファーは7・8月と1月）。</p>`}
     ${chips("pos", [["", "全員"], ["GK", "GK"], ["DF", "DF"], ["MF", "MF"], ["FW", "FW"]])}
@@ -8085,7 +8085,7 @@ const REGION_W = { "アメリカ": 30, "メキシコ": 15, "カナダ": 12, "ジ
 // 地域内の国の選び方：元データの選手数が多い国ほど出やすい（北中米は手で決めた割合、データにいない国はまれに）
 const pickRegionNat = nats => { const C = DATA.NAT_COUNT || {}; return weighted(nats.map(n => [n, nats.includes("アメリカ") && REGION_W[n] ? REGION_W[n] : Math.pow(Math.max(1, C[n] || 1), .7) * (nats.includes("アメリカ") ? .4 : 1)])); };
 // スカウトの報告（国内・海外を1つにまとめた処理）
-//  国内：2,000円・5日。7割が自国籍。将来性は最高でもA（90まで）
+//  国内：5,000円・5日。7割が自国籍。将来性は最高でもA+（90まで）
 //  海外：地域を選んで派遣（支部がなくても可）。支部のレベルで人数・才能・レジェンドの発見率が上がる
 //  ユース施設：S・Aが出る確率を少し上げ、候補を増やす（Lv5で+1人、Lv10でさらに+1人）
 const SCOUT_DOM = { cost: 5000, days: 5 };
@@ -8428,7 +8428,7 @@ ACTIONS["hh-yes"] = () => { const o = G.hh; G.hh = null; const old = me().name; 
 ACTIONS["hh-no"] = () => { const M = initMgr(), t = G.teams[G.hh.ti]; G.hh = null; M.conf = clamp((M.conf ?? 60) + 10, 0, 100); M.rep = clamp(M.rep + 1, 0, 100); G.day.logs.push(L(`🤝 ${t.name} からの打診を断りました。会長からの信頼が上がりました。`, "good")); persist(); render(); };
 
 // ---- 10. 歴代記録（全リーグの1部） ----
-const REC_DEF = { sgoal: ["シーズン最多得点", "点", 36], spts: ["シーズン最多勝ち点", "", 100], ws: ["最多連勝", "連勝", 18], cgoal: ["通算最多得点", "点", 450] };
+const REC_DEF = { sgoal: ["シーズン最多得点", "点", 36], spts: ["シーズン最多勝点", "", 100], ws: ["最多連勝", "連勝", 18], cgoal: ["通算最多得点", "点", 450] };
 const recs = () => { G.recs = G.recs || {}; for (const k in REC_DEF) if (!G.recs[k]) G.recs[k] = { v: REC_DEF[k][2], who: "（伝説の記録）", club: "", y: null }; return G.recs; };
 const goalsAll = p => (parseInt(p.career_league_goals) || 0) + (parseInt(p.career_cup_goals) || 0);
 function recBreak(k, v, who, club, mine) {
@@ -8452,7 +8452,7 @@ function recordsAfterMatch() {
     const c = goalsAll(p);
     if (!recBreak("cgoal", c, p.name, m.name, true) && R.cgoal.v - c <= 10 && R.cgoal.v - c > 0 && !N["nc" + p.uid]) { N["nc" + p.uid] = 1; G.day.logs.push(L(`🎯 ${p.name} が通算最多得点記録（${R.cgoal.v}点）まであと${R.cgoal.v - c}点！`, "head")); }
   }
-  if (!recBreak("spts", m.points, m.name, m.name, true) && m.points + 3 * remGames(m) > R.spts.v && R.spts.v - m.points <= 9 && !N.np) { N.np = 1; G.day.logs.push(L(`🎯 シーズン最多勝ち点記録（${R.spts.v}）まであと${R.spts.v - m.points}！`, "head")); }
+  if (!recBreak("spts", m.points, m.name, m.name, true) && m.points + 3 * remGames(m) > R.spts.v && R.spts.v - m.points <= 9 && !N.np) { N.np = 1; G.day.logs.push(L(`🎯 シーズン最多勝点記録（${R.spts.v}）まであと${R.spts.v - m.points}！`, "head")); }
   if (!recBreak("ws", m.ws || 0, m.name, m.name, true) && (m.ws || 0) >= R.ws.v - 3 && !N["nw" + m.ws]) { N["nw" + m.ws] = 1; G.day.logs.push(L(`🎯 最多連勝記録（${R.ws.v}連勝）まであと${R.ws.v - m.ws}！`, "head")); }
 }
 function recNearText() {
@@ -8470,7 +8470,7 @@ function recordsSeasonEnd() {
     const mine = t === m;
     if (recBreak("spts", t.points, t.name, t.name, mine) && !mine) out.push(`${REC_DEF.spts[0]}：${t.name}（${t.points}）`);
     if (recBreak("ws", t.wsMax || 0, t.name, t.name, mine) && !mine) out.push(`${REC_DEF.ws[0]}：${t.name}（${t.wsMax}連勝）`);
-    if (t.lost === 0 && t.won + t.drawn > 0) { out.push(`無敗でシーズンを終えた：${t.name}`); if (mine) { addEvent("🛡️ 無敗でシーズンを終えた"); achGrant("unbeaten"); } }
+    if (t.lost === 0 && t.won + t.drawn > 0) { out.push(`無敗でシーズンを終えた：${t.name}`); if (mine) { addEvent("🛡️ 無敗でシーズンを終えた"); if (G.cup_winner === t.name) achGrant("unbeaten"); } }
     for (const p of t.roster) {
       if (recBreak("sgoal", parseInt(p.league_goals) || 0, p.name, t.name, mine) && !mine) out.push(`${REC_DEF.sgoal[0]}：${p.name}（${t.name}・${p.league_goals}点）`);
       if (recBreak("cgoal", goalsAll(p), p.name, t.name, mine) && !mine) out.push(`${REC_DEF.cgoal[0]}：${p.name}（${goalsAll(p)}点）`);
@@ -8491,10 +8491,10 @@ ACH.push(
   ["riv10", "宿敵粉砕", "同じライバルに通算10勝する", "隠し", 1],
   ["pure11", "純血の11人", "ユース出身の選手だけで先発11人をそろえて勝つ", "隠し", 1],
   ["siege", "耐え忍ぶ", "相手にシュートを20本以上打たれて1-0で勝つ", "隠し", 1],
-  ["wall5", "鉄壁", "5試合続けて無失点", "隠し", 1],
-  ["giant", "下剋上", "先発平均が8以上高い相手に勝つ", "隠し", 1],
+  ["wall5", "完封街道", "5試合続けて無失点", "隠し", 1],
+  ["giant", "ジャイアントキリング", "先発平均が8以上高い相手に勝つ", "隠し", 1],
   ["rec", "記録破り", "自チームが歴代記録を更新する", "隠し", 1],
-  ["unbeaten", "無敗の王者", "1部で無敗のままシーズンを終える", "隠し", 1],
+  ["unbeaten", "完全無欠", `1部を無敗で終え、同じシーズンに${CUP_NAME}でも優勝する`, "隠し", 1],
 );
 for (const a of ACH.slice(-10)) ACH_BY[a[0]] = a;
 function hiddenAfterMatch(f, a, st, side, opp, xiDiff) {

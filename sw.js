@@ -1,5 +1,5 @@
-// オフライン用キャッシュ（バージョン 892ccead）
-const CACHE = 'soccer-m-892ccead';
+// オフライン用キャッシュ（バージョン 667ae0c1）
+const CACHE = 'soccer-m-667ae0c1';
 const CORE = ['./', './index.html',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon.png'];
