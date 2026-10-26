@@ -3256,10 +3256,11 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       if (p.skill === "鉄人") ic *= 0.3;
       if (rnd() < ic / 100) {
         if (rnd() < 0.02) {
-          p.injury_days = randint(180, 360);
+          p.injury_days = randint(180, 360); p.bigInj = (p.bigInj || 0) + 2;   // 重傷は大けが2回ぶん
           if (verbose && mine) post.push(L(`🚑【重傷】${p.name} がピッチに倒れ込みました…靭帯断裂等の重傷。全治 ${p.injury_days}日（長期離脱）`, "bad"));
+          if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大けが（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad"));
         } else {
-          p.injury_days = randint(3, 40);
+          p.injury_days = randint(3, 40); if (p.injury_days >= 30) { p.bigInj = (p.bigInj || 0) + 1; if (mine && p.bigInj >= 3) post.push(L(`💭 ${p.name} はまた大けが（通算${p.bigInj}回）。周囲には引退も考えていると漏らしているようです…`, "bad")); }
           if (verbose && mine) post.push(L(`⚠️ 負傷退場: ${p.name}（全治 ${p.injury_days}日）`, "bad"));
         }
       }
@@ -3505,6 +3506,13 @@ function seasonCeremony() {
   return data;
 }
 
+// 大けが（全治30日以上。全治半年以上の重傷は2回分）の経歴による引退の確率（1シーズンあたり）。経歴がなければ0
+//  1回1%・2回4%・3回以上10%。28歳以上は1.5倍・23歳以下は半分・オフの時点でまだ離脱中なら2倍
+const INJ_RETIRE = [0, .01, .04, .10];
+function injRetireP(p) {
+  const n = p.bigInj || 0; if (!n) return 0;
+  return INJ_RETIRE[Math.min(3, n)] * (p.age >= 28 ? 1.5 : p.age <= 23 ? .5 : 1) * ((p.injury_days || 0) > 0 ? 2 : 1);
+}
 // オフシーズン処理（加齢・引退・成績リセット）→ 7月1日へ
 function seasonRollover(y) {
   G.season_year = y;
@@ -3533,9 +3541,9 @@ function seasonRollover(y) {
         p.potential = Math.max(40, Math.min(105, p.potential + ch));
         if (team === mine && ch > 0) logs.push(L(`${p.name} はオフの間に一皮剥けたようです！（将来性UP）`, "good"));
       }
-      if (rnd() < 0.002) {
+      if (rnd() < injRetireP(p)) {   // 大けがを繰り返した選手は、引退を選ぶことがある
         p.retired = true;
-        if (team === mine) logs.push(L(`【悲報】${p.name}（${p.age}歳）が深刻な怪我の再発により、突如として現役引退を発表しました…`, "bad"));
+        if (team === mine) logs.push(L(`【悲報】${p.name}（${p.age}歳）が度重なる大けが（${p.bigInj}回）の影響で、現役引退を発表しました…`, "bad"));
       } else {
         const r = processEvolution(p, { seasonEnd: true });
         if (r && team === mine) logs.push(r);
@@ -3625,7 +3633,7 @@ function makeNewGame(world, myIdx) {
 
 // ---------------- セーブの圧縮・移行 ----------------
 const PKEYS = ["name", "pos", "age", "potential", "value", "condition", "fatigue", "retired", "injury_days", "league_goals", "cup_goals",
-  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend", "focus", "txp", "reborn", "pk", "rbv", "susp", "lastInt", "uid", "season_apps", "rk", "aw", "hg", "fa", "po", "per", "ct", "wage", "sat", "req", "ci", "ex", "pos2", "dps", "foot", "wf"];
+  "career_league_goals", "career_cup_goals", "career_apps", "skill", "is_rare", ...SKILLS_ALL, "league_assists", "cup_assists", "career_assists", "nat", "height", "legend", "focus", "txp", "reborn", "pk", "rbv", "susp", "lastInt", "uid", "season_apps", "rk", "aw", "hg", "fa", "po", "per", "ct", "wage", "sat", "req", "ci", "ex", "pos2", "dps", "foot", "wf", "bigInj"];
 const encP = p => PKEYS.map(k => p[k] ?? null);
 const decP = a => { const p = {}; PKEYS.forEach((k, i) => (p[k] = a[i])); return p; };
 function encodeSave(g) {
@@ -5980,7 +5988,7 @@ const SHEETS = {
         ${p.legend ? `<div class="legendbox"><b>🌟 レジェンド</b><span>${p.age <= 22 && getOvr(p) < (LEGEND_BY_ID[p.legend] || [])[6] - 3 ? `のちの伝説となる若き才能。ふつうの選手より速く成長し、25歳ごろまでに全盛期（総合${(LEGEND_BY_ID[p.legend] || [])[6]}前後）の姿へ近づきます。` : "往年の名選手が全盛期の姿で登場。年齢とともに能力は少しずつ落ちていきます。"}</span></div>` : ""}
         ${p.reborn != null ? `<div class="legendbox"><b>🔁 転生</b><span>引退したかつての選手が、若者として生まれ変わった姿。${p.age <= 25 ? `ふつうの選手より速く成長し、25歳ごろまでに総合${peakOf(p)._ovr}前後まで伸びる見込みです（生まれ変わるたびに、元の選手より強くなることも弱く終わることもあります）。` : "全盛期の力を持っています。"}</span></div>` : ""}
         ${p.skill ? `<div class="skillbox ${p.is_rare ? "rare" : ""}"><b>【${h(p.skill)}】</b><span>${h(PLAYER_SKILLS[p.skill] || "")}</span></div>` : ""}
-        <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>ポジション</dt><dd>${dpsOf(p).join("・")}</dd><dt>利き足</dt><dd>${(p.foot || "R") === "L" ? "左" : "右"}足 · 逆足 ${"★".repeat(p.wf || 3)}${"☆".repeat(5 - (p.wf || 3))}</dd><dt>市場価値</dt><dd>${yen(p.value)}</dd><dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
+        <dl class="kv">${p.nat ? `<dt>国籍</dt><dd>${h(natName(p))}</dd>` : ""}<dt>ポジション</dt><dd>${dpsOf(p).join("・")}</dd><dt>利き足</dt><dd>${(p.foot || "R") === "L" ? "左" : "右"}足 · 逆足 ${"★".repeat(p.wf || 3)}${"☆".repeat(5 - (p.wf || 3))}</dd><dt>市場価値</dt><dd>${yen(p.value)}</dd>${p.bigInj ? `<dt>大けが</dt><dd class="bad">${p.bigInj}回（全治30日以上・重傷は2回分）</dd>` : ""}<dt>将来性</dt><dd class="${potClass(p.potential)}">${potLabel(p.potential)}</dd>
         <dt>体力</dt><dd>${p.condition}%${p.fatigue ? `（疲労 ${p.fatigue}）` : ""}</dd><dt>状態</dt><dd class="${p.injury_days || p.susp > 0 ? "bad" : ""}">${p.injury_days ? `負傷（${p.injury_days}日）` : p.susp > 0 ? `出場停止（あと${p.susp}試合）` : "良好"}</dd>
         <dt>今季</dt><dd>リーグ ${p.league_goals}点${p.league_assists || 0}A · カップ ${p.cup_goals}点${p.cup_assists || 0}A</dd>
         ${perRows(p)}${p.fa ? `<dt>父</dt><dd>🧬 ${h(p.fa)}</dd>` : ""}${p.hg ? `<dt>出身</dt><dd>🎓 ${h(p.hg)}のユース</dd>` : ""}<dt>通算</dt><dd>${p.career_apps || 0}試合 / ${(p.career_league_goals || 0) + (p.career_cup_goals || 0)}得点 / ${p.career_assists || 0}アシスト</dd>${awardText(p) ? `<dt>受賞歴</dt><dd>${h(awardText(p))}</dd>` : ""}</dl>
