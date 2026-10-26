@@ -1662,7 +1662,7 @@ let _realByTeam = null;
 function fictionalPeak(team, pos) {
   if (!_realByTeam) { _realByTeam = {}; (DATA.RIVAL_PLAYERS || []).forEach((r, i) => { (_realByTeam[r.team_name + "|" + r.pos] = _realByTeam[r.team_name + "|" + r.pos] || []).push(i); (_realByTeam["*|" + r.pos] = _realByTeam["*|" + r.pos] || []).push(i); }); }
   const ids = _realByTeam[(team ? team.name : "*") + "|" + pos] || _realByTeam["*|" + pos] || [];
-  return Math.max(45, Math.min(95, (ids.length ? rebornPrime(choice(ids))._ovr - randint(FICT_PEAK_LOW[0], FICT_PEAK_LOW[1]) : 60) + ((team && team.pres) || 0)));
+  return Math.max(45, Math.min(95, (ids.length ? rebornPrime(choice(ids))._ovr - randint(FICT_PEAK_LOW[0], FICT_PEAK_LOW[1]) : 60) + Math.min(4, (team && team.pres) || 0)));   // 評判の上乗せは4まで（強いクラブに超一流が集まりすぎないように）
 }
 const FICT_PEAK_LOW = [0, 3];   // 実在選手の全盛期より何ポイント低くするか
 // 架空の若手を作る（全盛期 p.pk を持ち、他クラブでは25歳ごろまでにそこへ向かって伸びる）
@@ -1714,15 +1714,24 @@ function queueReborn(p, team) {
 }
 const natOfCountry = cid => { const c = countryInfo(cid); return c ? c.name : null; };
 // 順番が来た転生選手を1人取り出す（opt.nat: その国籍を優先 / opt.any: 誰でも。元のクラブは優先しない）
+let _anCache = null;
+function activeNames() {
+  const k = G.date + "|" + G.teams.reduce((a, t) => a + t.roster.length, 0);
+  if (_anCache && _anCache.k === k) return _anCache.s;
+  const s = new Set(); for (const t of G.teams) for (const p of t.roster) if (!p.retired) s.add(p.name);
+  _anCache = { k, s }; return s;
+}
 function takeReborn({ team = null, nat = null, any = false, pos = null } = {}) {
   const pool = rebornPool(), y = G.season_year;
-  const due = pool.filter(e => e.at <= y && (!pos || (DATA.RIVAL_PLAYERS[e.id] || {}).pos === pos));
+  const used = activeNames();   // 同じ名前の選手が今いるときは、その生まれ変わりはまだ出さない（同名が増えすぎないように）
+  const due = pool.filter(e => e.at <= y && (!pos || (DATA.RIVAL_PLAYERS[e.id] || {}).pos === pos) && !used.has((DATA.RIVAL_PLAYERS[e.id] || {}).name));
   if (!due.length) return null;
   const natOf = e => (DATA.RIVAL_PLAYERS[e.id] || {}).nat;
   let e = null;
   if (nat) { const c = due.filter(x => natOf(x) === nat); if (c.length) e = choice(c); }
   if (!e && any) e = due.find(x => x.at <= y - 2) || (team ? null : choice(due));
   if (!e) return null;
+  used.add((DATA.RIVAL_PLAYERS[e.id] || {}).name);
   pool.splice(pool.indexOf(e), 1);
   return makeReborn(e.id);
 }
@@ -1939,6 +1948,20 @@ function playBackground() {
 }
 
 // 移籍期間の日曜：AIクラブ同士の移籍
+// ---------- 他クラブの選手構成（ポジションの過不足） ----------
+const POS_MIN = { GK: 2, DF: 7, MF: 7, FW: 4 }, POS_MAX = { GK: 3, DF: 10, MF: 10, FW: 7 };
+const posCount = t => { const c = { GK: 0, DF: 0, MF: 0, FW: 0 }; for (const p of t.roster) if (!p.retired && c[p.pos] != null) c[p.pos]++; return c; };
+// 先発のそのポジションで一番弱い選手の総合値（いなければ0）
+const weakStarter = (t, pos) => { const s = getStarters(t).filter(p => p.pos === pos); return s.length ? Math.min(...s.map(getOvr)) : 0; };
+// いちばん補強したいポジション：足りない人数 → 先発の弱さ（チームの平均と比べて）
+function wantPos(t) {
+  const c = posCount(t);
+  const short = Object.keys(POS_MIN).filter(k => c[k] < POS_MIN[k]); if (short.length) return choice(short);
+  const st = getStarters(t), avg = st.length ? sum(st.map(getOvr)) / st.length : 60;
+  const ks = Object.keys(POS_MIN).filter(k => c[k] < POS_MAX[k]).map(k => [k, Math.max(.5, avg - weakStarter(t, k) + 3)]);
+  return ks.length ? weighted(ks) : null;
+}
+// 移籍期間の日曜：AIクラブ同士の移籍（買う側は補強したいポジションの、先発より強い選手を狙う）
 function aiTransfers() {
   const mine = me();
   const clubs = G.teams.filter(t => t !== mine);
@@ -1950,27 +1973,101 @@ function aiTransfers() {
     const w = rich.map(t => Math.sqrt(t.money));
     let x = rnd() * sum(w), buyer = rich[0];
     for (let i = 0; i < rich.length; i++) { x -= w[i]; if (x <= 0) { buyer = rich[i]; break; } }
-    const seller = choice(clubs.filter(t => t !== buyer && t.roster.length > 19));
-    if (!seller) continue;
-    const pool = seller.roster.filter(p => !p.retired && p.injury_days === 0 && p.age <= 32).sort((a, b) => b.value - a.value);
+    const pos = wantPos(buyer); if (!pos) continue;
+    const need = weakStarter(buyer, pos), cnt = posCount(buyer)[pos];
+    const sellers = clubs.filter(t => t !== buyer && t.roster.length > 19 && posCount(t)[pos] > POS_MIN[pos]);
+    if (!sellers.length) continue;
+    const seller = choice(sellers);
+    const pool = seller.roster.filter(p => !p.retired && p.injury_days === 0 && p.age <= 32 && p.pos === pos && (cnt < POS_MIN[pos] || getOvr(p) >= need + 2)).sort((a, b) => b.value - a.value);
     if (!pool.length) continue;
     const p = pool[Math.min(pool.length - 1, Math.floor(Math.pow(rnd(), 2) * pool.length))];
-    const samePos = buyer.roster.filter(q => q.pos === p.pos && !q.retired).sort((a, b) => getOvr(a) - getOvr(b));
-    const weakest = samePos[0];
-    if (weakest && getOvr(weakest) >= getOvr(p) && samePos.length >= 3) continue;   // 補強にならない
     const fee = Math.trunc(p.value * uniform(1.0, 1.6));
     if (buyer.money < fee) continue;
     seller.roster.splice(seller.roster.indexOf(p), 1);
     buyer.roster.push(p);
     buyer.money -= fee; seller.money += fee;
-    if (buyer.roster.length > 28 && weakest) buyer.roster.splice(buyer.roster.indexOf(weakest), 1);
+    // そのポジションが多すぎたら、いちばん弱い選手を売った側へ（人数のつり合いをとる）
+    if (posCount(buyer)[pos] > POS_MAX[pos] || buyer.roster.length > 28) {
+      const weakest = buyer.roster.filter(q => q.pos === pos && q !== p && !q.retired).sort((a, b) => getOvr(a) - getOvr(b))[0];
+      if (weakest) { buyer.roster.splice(buyer.roster.indexOf(weakest), 1); seller.roster.push(weakest); }
+    }
     deals.push({ date: G.date, name: p.name, pos: p.pos, age: p.age, ovr: getOvr(p), from: seller.name, to: buyer.name, fee });
   }
   G.news.unshift(...deals);
   if (G.news.length > 300) G.news.length = 300;
   return deals;
 }
+// シーズン終了：他クラブの選手構成を整える
+//  1) 多すぎるポジションの控えを、足りないクラブへ移す
+//  2) それでも足りないポジションは、全盛期の架空選手（先発が足りないとき）か若手で補う
+//  3) 控えに回っている実力者（総合84以上・31歳以下）は、先発になれるクラブ（他国も）へ移籍しやすい
+function aiSquadBalance() {
+  const mine = me(), ai = G.teams.filter(t => t !== mine), deals = [];
+  const move = (p, from, to, fee) => { from.roster.splice(from.roster.indexOf(p), 1); to.roster.push(p); if (fee) { to.money -= fee; from.money += fee; } p.ct = randint(2, 4); deals.push({ date: G.date, name: p.name, pos: p.pos, age: p.age, ovr: getOvr(p), from: from.name, to: to.name, fee: fee || 0 }); };
+  for (const t of ai) {
+    const c = posCount(t);
+    for (const pos of Object.keys(POS_MAX)) {
+      while (c[pos] > POS_MAX[pos]) {
+        const st = new Set(getStarters(t));
+        const p = t.roster.filter(q => !q.retired && q.pos === pos && !st.has(q)).sort((a, b) => getOvr(a) - getOvr(b))[0];
+        if (!p) break;
+        const dest = ai.filter(d => d !== t && d.roster.length < 27 && posCount(d)[pos] < POS_MAX[pos]);
+        const pref = dest.filter(d => posCount(d)[pos] < POS_MIN[pos]);
+        const to = (pref.length ? pref : dest).sort((a, b) => (a.country === t.country ? 0 : 1) - (b.country === t.country ? 0 : 1) + (rnd() - .5))[0];
+        if (to) move(p, t, to, to.money > p.value ? Math.round(p.value * .5) : 0); else { t.roster.splice(t.roster.indexOf(p), 1); queueReborn(p, t); }
+        c[pos]--;
+      }
+    }
+  }
+  for (const t of ai) {
+    const c = posCount(t), slots = slotsFor(t.formation || "4-4-2"), need = { GK: 0, DF: 0, MF: 0, FW: 0 }; for (const sl of slots) need[sl.role]++;
+    for (const pos of Object.keys(POS_MIN)) {
+      for (let i = c[pos]; i < POS_MIN[pos]; i++) {
+        let np = takeReborn({ team: t.name, nat: natOfCountry(t.country), any: true, pos });
+        if (!np && i < need[pos]) {   // 先発が足りない：全盛期の年齢の架空選手
+          np = createPlayer({ age: randint(23, 29), pos, quality: "scout_high", country: t.country });
+          np.pk = fictionalPeak(t, pos); fitOvr(np, np.pk - randint(2, 6)); np.potential = Math.max(np.potential, Math.min(99, np.pk + 2));
+        }
+        if (!np) { np = makeFictionalYouth(t); if (np.pos !== pos) { np.pos = pos; np.dps = genDps(pos); np.pk = fictionalPeak(t, pos); fitOvr(np, np.pk - randint(18, 22)); } }
+        t.roster.push(np);
+      }
+    }
+  }
+  // 控えの実力者は、先発になれるクラブへ
+  for (const t of ai) {
+    const st = new Set(getStarters(t));
+    for (const p of t.roster.filter(q => !q.retired && !st.has(q) && getOvr(q) >= 84 && q.age <= 31 && !(q.injury_days > 0))) {
+      if (rnd() > .6 || posCount(t)[p.pos] <= POS_MIN[p.pos]) continue;
+      // 控えの選手は相場より安く出る（資金の少ないクラブでも手が届くように）
+      const o = getOvr(p), ask = Math.round(p.value * uniform(.6, 1));
+      const c = ai.filter(d => d !== t && d.division === 1 && d.money > p.value * .3 && posCount(d)[p.pos] < POS_MAX[p.pos] && weakStarter(d, p.pos) <= o - 3);
+      if (!c.length) continue;
+      const to = weighted(c.map(d => [d, (d.country !== t.country ? 2 : 1) * Math.max(1, clubLevelAI(d) - 60)]));
+      move(p, t, to, Math.min(ask, Math.round(to.money * .7)));
+    }
+  }
+  if (deals.length) { G.news.unshift(...deals.filter(d => d.fee > 0 && d.ovr >= 70)); if (G.news.length > 300) G.news.length = 300; }
+  return deals;
+}
+const clubLevelAI = t => (typeof clubLevel === "function" ? clubLevel(t) : 70);
 // ---------- 成長・衰退・引退 ----------
+// 1年で下がる総合値の目安（GKは2歳遅い）。実際は0.5〜1.5倍のばらつき
+const DECLINE = { 31: 1, 32: 1.5, 33: 2.5, 34: 3, 35: 3.5, 36: 4 };
+const DECL_MUL = { speed: 2.2, acceleration: 2.2, stamina: 1.8, jumping: 1.6, strength: 1.2, workrate: 1.2, vision: .4, composure: .3, positioning: .6, leadership: .2, passing: .8 };
+function ageDecline(p) {
+  const a = p.age - (p.pos === "GK" ? 2 : 0);
+  if (a < 31) return null;
+  const base = DECLINE[Math.min(36, a)] + (a > 36 ? (a - 36) * .5 : 0);
+  const d = Math.round(base * uniform(.5, 1.5));
+  if (d <= 0) return null;
+  const o0 = getOvr(p), target = o0 - d, w = OVR_W[p.pos] || OVR_W.MF;
+  const ks = Object.keys(w).map(k => [k, w[k] * (DECL_MUL[k] || 1)]);
+  for (let i = 0; i < 300 && getOvr(p) > target; i++) { const k = weighted(ks); if (p[k] > 20) p[k] -= 1; }
+  // 総合値に関係しない体の能力も少し落ちる
+  for (const k of ["speed", "acceleration", "stamina"]) if (!w[k] && rnd() < .5) p[k] = Math.max(20, p[k] - randint(1, 2));
+  const o1 = getOvr(p);
+  return o1 < o0 ? L(`[衰退] ${p.name}（${p.age}歳）の総合値が ${o0} → ${o1} に下がった…`, "bad") : null;
+}
 function processEvolution(p, { training = false, match = false, seasonEnd = false } = {}) {
   if (p.retired) return null;
   let rep = null;
@@ -1987,12 +2084,8 @@ function processEvolution(p, { training = false, match = false, seasonEnd = fals
       }
     }
   }
-  const ds = p.pos === "GK" ? 33 : 30;
-  if (p.age >= ds && rnd() < (p.age - (ds - 1)) * 0.04) {
-    const s = p.pos === "GK" ? choice(["reflexes", "handling"]) : choice(SKILLS_ALL);
-    p[s] = Math.max(10, p[s] - 1);
-    rep = L(`[衰退] ${p.name} の ${SKJ[s]} が低下…`, "bad");
-  }
+  // 衰え：全クラブ共通で、シーズン終了時に年齢に応じて総合値が下がる（体力系の能力から落ちやすい）
+  if (seasonEnd) { const r = ageDecline(p); if (r) rep = r; }
   const ra = p.pos === "GK" ? 36 : 33;
   if (seasonEnd && p.age >= ra && rnd() < (p.age - (ra - 1)) * 0.10) {
     p.retired = true;
@@ -2223,7 +2316,7 @@ function randomEvent(me) {
   const lv = k => (t.facilities || {})[k] || 1, phys = (typeof staffLv === "function") ? staffLv(t, "phys") : 0;
   const per = p => ((typeof perOf === "function") ? perOf(p) : "");
   const r10 = x => Math.round(x / 10) * 10;
-  const fans = (k) => { if ((typeof initFans === "function")) initFans(t); const d = Math.round((t.fans || 30000) * k); t.fans = Math.max(3000, (t.fans || 30000) + d); return d; };
+  const fans = (k) => { if ((typeof initFans === "function")) initFans(t); const d0 = Math.round((t.fans || 30000) * k), d = typeof fanGain === "function" ? fanGain(t, d0) : d0; t.fans = Math.max(3000, (t.fans || 30000) + d); return d; };
   const young = ok.filter(p => p.age <= 21 && !p.legend && p.reborn == null);
   const nextOpp = (() => { try { const st = myLeague(), list = divTeams(t.division); for (const [hi, ai] of st.schedule[st.round] || []) { if (list[hi] === t) return list[ai]; if (list[ai] === t) return list[hi]; } } catch (e) {} return null; })();
   const E = [
@@ -3466,7 +3559,7 @@ function seasonRollover(y) {
     }
     if (n0 < 18) logs.push(L(`🌱 選手が足りないため、ユースから ${18 - n0} 人が昇格しました。`, "good"));
   }
-  sonsArrive(logs); worldEvents(logs); natPoolRollover();
+  aiSquadBalance(); sonsArrive(logs); worldEvents(logs); natPoolRollover();
   G.mgrOffers = null; G.natOffers = null;
   compactHistory(); refreshNames();
   if (mine.academy && mine.academy.length) { for (const p of mine.academy) academyPass(p); mine.academy = []; }
@@ -7335,6 +7428,8 @@ const fanMul = t => Math.max(.5, Math.min(1.6, Math.sqrt((t.fans || 30000) / 400
 // 増えるぶんはファンが多いほど伸びにくい（20万人に近づくほど増えない）
 const FAN_CAP = 200000;
 const fanGrow = (t, k) => k > 1 ? 1 + (k - 1) * Math.max(0, 1 - t.fans / FAN_CAP) : k;
+// ファンの増加（イベント・目標・ライバル戦など）も、ファンが多いほど伸びにくい
+const fanGain = (t, d) => d > 0 ? Math.round(d * Math.max(0, 1 - (t.fans || 0) / FAN_CAP)) : d;
 function fansAfterMatch(f, a) { const m = me(); initFans(m); m.fans = Math.round(m.fans * fanGrow(m, f > a ? 1.004 : f === a ? 1.001 : .997)); }
 // シーズン終了：成績でファンが増減（全クラブ）
 function fansSeasonEnd() {
@@ -7647,9 +7742,9 @@ function ensureContracts() {
 }
 // 更新の要求額（週給）：能力・性格・満足度で決まる
 // 給料の相場はクラブの収入の規模で決まる（収入が大きいクラブほど高い給料を払うことになる）
-//  見込みの週収入 4,500円までは1倍、9,000円で2倍（上限）
+//  見込みの週収入 4,500円までは1倍、9,000円で2倍、13,500円で3倍（上限）
 const incomeEst = t => { initFans(t); return sum((t.sponsors || []).map(x => x.weekly || 0)) + t.fans * .9 * TICKET_PRICE * (t.division === 2 ? ATT.d2price : 1) * .5 + MATCH_REW.win * .5 * (t.division === 2 ? MATCH_REW.d2 : 1); };
-const wageScale = t => clamp(incomeEst(t) / 4500, 1, 2);
+const wageScale = t => clamp(incomeEst(t) / 4500, 1, 3);
 const wageDemand = p => Math.round(baseWage(p) * wageScale(me()) * PER(p).wage * (p.sat < 40 ? 1.2 : 1) / 10) * 10;
 const ctLeft = p => (p.ct ?? G.season_year) - G.season_year + 1;   // 今季を含めた残りシーズン
 // 毎週（日曜）：満足度の変化と、移籍の希望
@@ -7673,7 +7768,7 @@ function satWeekly() {
     const share = played ? (p.season_apps || 0) / played : expShare;
     let ds = played >= 3 ? clamp((share - expShare) * 6, -2, 1) : 0;
     ds += teamMood * (perOf(p) === "野心家" ? 2 : 1);
-    if (p.wage < baseWage(p) * wageScale(me()) * .8) ds -= 1.5;          // 実力に対して給料が安い
+    if (p.wage < baseWage(p) * wageScale(me()) * .7) ds -= 1.5;          // 実力に対して給料が安い
     if (perOf(p) === "野心家" && m.division === 2) ds -= .7;
     ds *= ds < 0 ? P.sat : 1;
     if (leader) ds += .4;
@@ -8068,6 +8163,8 @@ function rivalSeasonEnd() {
 // ---- 新しいシーズン・新しい週の準備（毎日の処理から） ----
 function hookDaily() {
   const m = me();
+  // 退団・引退した選手がキャプテンやキッカーのまま残らないように
+  if (m.tactics) { const nm = new Set(m.roster.filter(p => !p.retired).map(p => p.name)); for (const k of ["captain", "pk", "fk", "ck"]) if (m.tactics[k] && !nm.has(m.tactics[k])) m.tactics[k] = null; }
   if (!G.ftv) {   // 古いセーブ：利き足と逆足の精度を付ける
     G.ftv = 1; const mp = new Map(); const rc = DATA.RIVAL_COLS || [], fi = rc.indexOf("foot"), wi = rc.indexOf("wf");
     if (fi >= 0) for (const r of DATA.RIVAL_PLAYERS || []) mp.set(r.name + "|" + r.pos + "|" + r.height, [r.foot, r.wf]);
@@ -8213,7 +8310,7 @@ function weeklyGoalsCheck(f, a, st, side) {
     if (!hit) continue;
     g.done = true; G.day.wkHit = true;
     if (g.rw === "yen") { m.money += WG.yen; G.day.logs.push(L(`✅ 週の目標「${g.txt}」達成！ +${yen(WG.yen)}`, "good")); }
-    else { initFans(m); const d = Math.round(m.fans * WG.fan); m.fans += d; G.day.logs.push(L(`✅ 週の目標「${g.txt}」達成！ ファン +${d.toLocaleString()}人`, "good")); }
+    else { initFans(m); const d = fanGain(m, Math.round(m.fans * WG.fan)); m.fans += d; G.day.logs.push(L(`✅ 週の目標「${g.txt}」達成！ ファン +${d.toLocaleString()}人`, "good")); }
   }
   if (!w.all && w.list.every(g => g.done)) { w.all = true; m.money += WG.all; G.day.logs.push(L(`🎯 今週の目標をすべて達成！ ボーナス +${yen(WG.all)}`, "rare")); }
 }
@@ -8287,7 +8384,7 @@ ACTIONS["leg-set"] = uid => {
   addEvent(`👑 ${x.n} をクラブの伝説に指定`);
   persist(); renderSheet(); toast(`${x.n} をクラブの伝説に指定しました`, "good");
 };
-function clubLegFans() { const n = clubLegs().length; if (!n) return; const m = me(); m.fans = Math.round(m.fans * (1 + .005 * n)); }
+function clubLegFans() { const n = clubLegs().length; if (!n) return; const m = me(); m.fans += fanGain(m, Math.round(m.fans * .005 * n)); }
 
 // ---- 9. 引き抜きの打診（シーズン中） ----
 function headhuntWeekly() {
@@ -8401,7 +8498,7 @@ function after4(f, a, home, isCup, st) {
     if (!isCup) { const r = ((G.h2h = G.h2h || {})[opp.name] = G.h2h[opp.name] || [0, 0, 0]); r[f > a ? 0 : f === a ? 1 : 2]++; }
     if (isRival(opp)) {
       const R = G.rival; R[f > a ? "w" : f === a ? "d" : "l"]++;
-      initFans(m); const d = Math.round(m.fans * (f > a ? .01 : f < a ? -.005 : 0));
+      initFans(m); const d = fanGain(m, Math.round(m.fans * (f > a ? .01 : f < a ? -.005 : 0)));
       if (d) { m.fans += d; G.day.logs.push(L(f > a ? `🔥 ライバル ${opp.name} に勝利！ ファン +${d.toLocaleString()}人` : `😣 ライバル ${opp.name} に敗戦… ファン ${d.toLocaleString()}人`, f > a ? "good" : "bad")); }
     }
   }
