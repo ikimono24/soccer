@@ -826,10 +826,21 @@ html, body { overscroll-behavior-x: none; }
 .pssel { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
 .pssel select { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font-size: 14px; }
 .ps-cnt { display: flex; justify-content: space-between; align-items: center; }
-.linkbtn { border: 0; background: none; color: var(--pitch); font-size: 13px; text-decoration: underline; padding: 4px; }
 .pstoggle { font-size: 13.5px; }
 
 [data-lp] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+.slot-btns .btn { flex: 1 1 0; }
+.slot-btns .btn small { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.slot-sub { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: flex-start; }
+.slot-sub .linkbtn { font-size: 13px; padding: 4px 0; color: var(--muted); }
+.slot-sub .linkbtn.dangertxt { color: var(--bad); }
+.slot-head { justify-content: flex-start; text-align: left; }
+.slot-btns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; width: 100%; }
+.slot-btns .btn { width: 100%; padding-inline: 8px; }
+.slot-btns:has(> .btn:nth-child(2)) { grid-template-columns: 3fr 2fr; grid-auto-flow: row; }
+.slot, .slot-head, .slot-sub { text-align: left; justify-content: flex-start; align-items: stretch; }
+.slot-head { align-items: center; }
 
 </style>
 </head>
@@ -3183,12 +3194,33 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
     pk = true;
     const str = S_ => S_.filter(p => p.pos !== "GK").reduce((a, p) => a + getOvr(p), 0) / Math.max(1, S_.filter(p => p.pos !== "GK").length);
     const sh = str(hS), sa = str(aS), tired = .22;
-    if (verbose) yield ev(90, "90分では決着がつかず、延長戦へ！", "phase", 1200);
+    if (verbose) { yield ev(90, "90分では決着がつかず、延長戦へ！", "phase", 1200); yield { t: "et" }; }
     const etGoal = (side, S_, t) => { const c = S_.filter(p => p.pos !== "GK"); const p = weighted(c.map(q => [q, (q.pos === "FW" ? 3 : q.pos === "MF" ? 1.5 : .4) * (V(q, "finishing") / 70)])); 
       if (side === "home") hs++; else as++; p.cup_goals = (parseInt(p.cup_goals) || 0) + 1; p.career_cup_goals = (parseInt(p.career_cup_goals) || 0) + 1; (MS.gl = MS.gl || []).push([p, null, side, t]); return p; };
+    const gkIn = S_ => S_.find(p => p.pos === "GK") || S_[0];
+    const etList = [];
     for (const [side, S_, mine, opp] of [["home", hS, sh, sa], ["away", aS, sa, sh]]) {
       const pr = cl(tired + (mine - opp) * .02, .08, .45);
-      if (rnd() < pr) { const t = randint(91, 120), p = etGoal(side, S_, t); if (verbose) yield { ...ev(t, `⚽ GOAL!! 延長戦で ${p.name} が決めた！（${hs}-${as}）`, "goal " + side, 1200), goal: side }; }
+      if (rnd() < pr) etList.push({ side, S_, t: randint(91, 120), goal: true });
+    }
+    // 画面用：決まらなかったチャンスも少し見せる（結果には影響しない）
+    if (verbose) for (const [side, S_] of [["home", hS], ["away", aS]]) { const n = 1 + (Math.random() < .5 ? 1 : 0); for (let k = 0; k < n; k++) etList.push({ side, S_, t: 91 + Math.floor(Math.random() * 30), goal: false }); }
+    etList.sort((a, b) => a.t - b.t);
+    for (const g of etList) {
+      const tm = g.side === "home" ? home : away, oS = g.side === "home" ? aS : hS;
+      if (g.goal) {
+        const p = etGoal(g.side, g.S_, g.t);
+        if (verbose) {
+          yield { t: "attack", side: g.side, poss: g.side, team: tm.name, min: g.t };
+          yield { t: "act", kind: "shot", side: g.side, by: p, gk: gkIn(oS), type: "shot", spot: "box", res: "goal", min: g.t };
+          yield { ...ev(g.t, `⚽ GOAL!! 延長戦で ${p.name} が決めた！（${hs}-${as}）`, "goal " + g.side, 1200), goal: g.side };
+        }
+      } else {
+        const c = g.S_.filter(p => p.pos !== "GK" && p.pos !== "DF"), p = c.length ? c[Math.floor(Math.random() * c.length)] : g.S_[g.S_.length - 1], res = Math.random() < .5 ? "save" : "miss";
+        yield { t: "attack", side: g.side, poss: g.side, team: tm.name, min: g.t };
+        yield { t: "act", kind: "shot", side: g.side, by: p, gk: gkIn(oS), type: "shot", spot: Math.random() < .5 ? "box" : "edge", res, min: g.t };
+        yield { ...ev(g.t, res === "save" ? `${p.name} のシュートはGKがセーブ！` : `${p.name} のシュートは枠を外れた`, res === "save" ? "save" : "muted", 600), who: p };
+      }
     }
     const et = [hs, as];
     if (hs === as) {
@@ -3200,9 +3232,12 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       let ph = 0, pa = 0, i = 0, line = [];
       for (; i < 30; i++) {
         const kh = kH[i % kH.length], ka = kA[i % kA.length], okH = shoot(kh, gA), okA = shoot(ka, gH);
-        if (okH) ph++; if (okA) pa++;
+        if (verbose && i === 0) yield { t: "pkstart" };
+        if (okH) ph++;
+        if (verbose) yield { t: "pkkick", side: "home", by: kh, gk: gA, ok: okH, ph, pa, n: i + 1 };
+        if (okA) pa++;
+        if (verbose) yield { t: "pkkick", side: "away", by: ka, gk: gH, ok: okA, ph, pa, n: i + 1 };
         line.push(`${okH ? "○" : "×"}${okA ? "○" : "×"}`);
-        if (verbose) yield ev(120, `PK ${i + 1}本目：${kh.name} ${okH ? "成功" : "失敗"} / ${ka.name} ${okA ? "成功" : "失敗"}（${ph}-${pa}）`, okH || okA ? "info" : "muted", 700);
         if (i < 4) { const left = 4 - i; if (ph > pa + left || pa > ph + left) break; } else if (ph !== pa) break;
       }
       disp = { hs: et[0], as: et[1], et: true, pk: [ph, pa] };
@@ -3724,6 +3759,9 @@ function handle(e) {
     case "sendoff": sendOff(e); return .3;
     case "aisub": aiSub(e); return .05;
     case "second": secondHalf(); return null;
+    case "et": extraTime(); return null;
+    case "pkstart": pkStart(); return null;
+    case "pkkick": pkKick(e); return null;
     case "done": fulltime(e.value); return null;
   }
   return .05;
@@ -4280,6 +4318,51 @@ function updateBall() {
   if (!b.anim || !b.anim.shot) { if (S.trail.length) S.trail.shift(); }
 }
 
+// ---------- 延長戦・PK戦 ----------
+function extraTime() {
+  S.et = true; S.min = 90; setClock(90, .1);
+  kickoffShape("home"); S.ball.anim = null; S.ball.holder = null; S.ball.x = .5; S.ball.y = .5;
+  waitSettled(() => { S.ball.holder = S.kicker; at(.5, advance); }, 4);
+}
+// PK戦：両チームの選手はセンターサークル、キッカーだけがスポットへ（右側のゴールを使う）
+const PK_SPOT = 1 - 11 / 105;
+function pkStart() {
+  S.pk = [0, 0]; clearOv(); S.phase = "set"; S.poss = null; S.ball.holder = null; S.ball.anim = null;
+  S.min = 120; setClock(120, .01); feed(120, "PK戦開始", "phase");
+  for (const side of ["home", "away"]) {
+    const of = outfield(side);
+    of.forEach((m, i) => { m.pkPos = [side === "home" ? .47 : .53, .3 + i * (.4 / Math.max(1, of.length - 1))]; m.ov = m.pkPos; });
+    const g = gkOf(side); g.pkPos = [.82, side === "home" ? .12 : .88]; g.ov = g.pkPos;
+  }
+  ballTo(PK_SPOT, .5, .8, .03);
+  lastClock = ""; renderClock();
+  waitSettled(() => at(.3, advance), 3);
+}
+function pkKick(e) {
+  const k = M(e.by) || outfield(e.side)[0], g = M(e.gk) || gkOf(other(e.side)), own = gkOf(e.side);
+  for (const side of ["home", "away"]) for (const m of S.teams[side].markers) { m.lab = false; if (m.pkPos) m.ov = m.pkPos; }
+  own.ov = [.82, e.side === "home" ? .12 : .88];
+  k.ov = [PK_SPOT - .035, .5]; g.ov = [.995, .5]; k.lab = g.lab = true;
+  S.ball.anim = null; S.ball.holder = null; S.ball.x = PK_SPOT; S.ball.y = .5; S.ball.z = 0;
+  waitSettled(() => {
+    const gy = .5 + (Math.random() < .5 ? -1 : 1) * (.025 + Math.random() * .03);
+    let res = e.ok ? "goal" : Math.random() < .65 ? "save" : "miss";
+    k.ov = [PK_SPOT - .01, .5];
+    at(.35, () => {
+      if (res === "goal") { g.ov = [.99, gy > .5 ? .45 : .55]; ballTo(1.013, gy, .38, .02, true); }
+      else if (res === "save") { g.ov = [.985, gy]; ballTo(.982, gy, .38, .02, true); at(.38, () => { S.ball.anim = null; S.ball.holder = g; }); }
+      else { const off = (Math.random() < .5 ? -1 : 1) * (.07 + Math.random() * .04); g.ov = [.99, .5 - off * .4]; ballTo(1.03, .5 + off, .45, .06, true); }
+    });
+    at(.8, () => {
+      S.pk = [e.ph, e.pa];
+      feed(120, `PK ${e.n}本目：${e.by.name} ${e.ok ? "成功" : res === "save" ? "失敗（GKがセーブ）" : "失敗（枠外）"}（${e.ph}-${e.pa}）`, e.ok ? "goal " + e.side : "save");
+      bubble(e.ok ? k : res === "save" ? g : k, e.ok ? "成功" : res === "save" ? "セーブ！" : "失敗", e.ok ? "skill" : "foul");
+      lastClock = ""; renderClock();
+    });
+    at(2.0, () => { S.ball.holder = null; S.ball.anim = null; S.ball.x = PK_SPOT; S.ball.y = .5; advance(); });
+  }, 3);
+}
+
 // ---------- 前半終了・後半・試合終了 ----------
 function halftime(e) {
   S.min = 45; feed(45, `ハーフタイム（${e.hs}-${e.as}）`, "phase");
@@ -4412,8 +4495,9 @@ function sendOff(e) {
   if (i >= 0) { const m = t.markers[i]; if (S.ball.holder === m) S.ball.holder = null; t.markers.splice(i, 1); }
 }
 function fulltime(r) {
-  S.min = 90; S.hs = r.hs; S.as = r.as; if (r.stats) S.ms = r.stats;
-  feed(90, `試合終了（${r.hs}-${r.as}）`, "phase");
+  const d = r.disp; S.disp = d || null; S.pk = null;
+  S.min = d ? 120 : 90; setClock(S.min, .01); S.hs = d ? d.hs : r.hs; S.as = d ? d.as : r.as; if (r.stats) S.ms = r.stats;
+  feed(S.min, `試合終了（${S.hs}-${S.as}${d ? d.pk ? ` PK ${d.pk[0]}-${d.pk[1]}` : " 延長" : ""}）`, "phase");
   kickoffShape(null); S.ball.anim = null; S.ball.holder = null;
   S.state = "done"; lastClock = ""; renderClock(); renderBoard(); renderPanel();
 }
@@ -4426,6 +4510,8 @@ function skipToEnd() {
     if (S.pend.length && ((e.t === "act" && DEAD.has(e.kind)) || e.t === "halftime" || (e.t === "line" && e.goal))) doSubs(e.min || S.min || 45);
     if (e.t === "halftime") { feed(45, `ハーフタイム（${e.hs}-${e.as}）`, "phase"); S.input = null; continue; }
     if (e.t === "second") { S.half = 2; feed(45, "後半開始", "phase"); continue; }
+    if (e.t === "et" || e.t === "pkstart") continue;
+    if (e.t === "pkkick") { feed(120, `PK ${e.n}本目：${e.by.name} ${e.ok ? "成功" : "失敗"}（${e.ph}-${e.pa}）`, e.ok ? "goal " + e.side : "save"); continue; }
     if (e.t === "stats") { S.ms = e.ms; continue; }
     if (e.t === "sendoff") { sendOff(e); continue; }
     if (e.t === "aisub") { aiSub(e); continue; }
@@ -4633,9 +4719,9 @@ function renderBoard() {
   $id("lv-hs").textContent = S.hs; $id("lv-as").textContent = S.as;
 }
 function renderClock() {
-  const txt = S.state === "done" ? "FT" : S.state === "ht" ? "HT" : S.min + "'";
+  const txt = S.state === "done" ? (S.disp ? S.disp.pk ? `PK ${S.disp.pk[0]}-${S.disp.pk[1]}` : "延長 FT" : "FT") : S.state === "ht" ? "HT" : S.pk ? `PK ${S.pk[0]}-${S.pk[1]}` : S.min + "'";
   if (txt === lastClock) return; lastClock = txt;
-  $id("lv-clockTxt").textContent = txt; $id("lv-clockBar").style.width = Math.min(100, S.min / 90 * 100) + "%";
+  $id("lv-clockTxt").textContent = txt; $id("lv-clockBar").style.width = Math.min(100, S.min / (S.et || S.disp ? 120 : 90) * 100) + "%";
 }
 // 実況はピッチ下のテロップ1行だけ（次の実況が来るまで表示し続ける）
 function renderTicker(force) {
@@ -5310,9 +5396,11 @@ function renderTitle() {
       <div class="slot-head"><span class="slot-no">${n}</span>${m ? `<span>${crest(m.team)} <b>${h(m.team)}</b><small class="muted"> ${fmtDate(m.date)}</small></span>` : `<span class="muted">空きスロット</span>`}</div>
       <div class="slot-btns">
         ${m ? `<button class="btn primary" data-act="slot-cont" data-arg="${n}">続きから</button>` : `<button class="btn primary" data-act="slot-new" data-arg="${n}">新しく始める</button>`}
-        ${newerCloud ? `<button class="btn" data-act="cloud-load" data-arg="${n}">☁️ クラウド<small>${h(cm.team)} · ${fmtDate(cm.date)}</small></button>` : ""}
-        <button class="btn ghost" data-act="slot-file" data-arg="${n}">📂 読込</button>
-        ${m ? `<button class="btn ghost" data-act="slot-new" data-arg="${n}">新規</button><button class="btn ghost" data-act="slot-del" data-arg="${n}">🗑</button>` : ""}
+        ${newerCloud ? `<button class="btn" data-act="cloud-load" data-arg="${n}">☁️ クラウドから<small>${fmtDate(cm.date)}</small></button>` : ""}
+      </div>
+      <div class="slot-sub">
+        <button class="linkbtn" data-act="slot-file" data-arg="${n}">📂 ファイルから読込</button>
+        ${m ? `<button class="linkbtn" data-act="slot-new" data-arg="${n}">新しく始める</button><button class="linkbtn dangertxt" data-act="slot-del" data-arg="${n}">🗑 削除</button>` : ""}
       </div></div>`);
   }
   return `<div class="title">
