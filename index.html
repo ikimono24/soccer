@@ -802,6 +802,34 @@ table.mini tr.up td:first-child { font-weight: 700; }
 .tslot small.t-s { color: var(--rare); } .tslot small.t-a { color: var(--tier-a); } .tslot small.t-b { color: var(--tier-b); }
 .sbrow.on { outline: 2px solid var(--accent); }
 .wcsel li.wch { list-style: none; font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 8px 2px 2px; background: none; }
+.crest-flag { display: inline-flex; align-items: center; justify-content: center; line-height: 1; vertical-align: middle; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.r-goals { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 8px; font-size: 12.5px; }
+.r-goals p { margin: 2px 0; } .r-goals div:last-child { text-align: right; } .r-goals small { color: var(--muted); }
+.ht .tboard .tslot small, .tboard .tslot small { color: #f1f5ef; }
+.tboard .tslot small.t-b { color: #f2b632; } .tboard .tslot small.t-a { color: #4cc27f; } .tboard .tslot small.t-s { color: #b98cff; }
+.tacmatch { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin: 0 0 10px; padding: 8px 12px; border: 1.5px solid var(--accent); border-radius: 10px; font-size: 13px; }
+
+.slot { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.slot.cur { border-color: var(--pitch); box-shadow: 0 0 0 1px var(--pitch) inset; }
+.slot { text-align: left; }
+.slot-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.slot-head > span:last-child { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-no { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--line); font-weight: 700; font-size: 13px; }
+.slot-btns { display: flex; flex-wrap: nowrap; gap: 6px; }
+.slot-btns .btn { flex: 1 1 auto; min-width: 0; width: auto; padding-inline: 8px; white-space: nowrap; font-size: 14px; }
+.slot-btns .btn.primary { flex: 3 1 35%; }
+.slot-btns .btn.ghost { flex: 0 1 auto; }
+
+html, body { overscroll-behavior-x: none; }
+.chiprow { overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.psadv { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+.pssel { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.pssel select { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font-size: 14px; }
+.ps-cnt { display: flex; justify-content: space-between; align-items: center; }
+.linkbtn { border: 0; background: none; color: var(--pitch); font-size: 13px; text-decoration: underline; padding: 4px; }
+.pstoggle { font-size: 13.5px; }
+
+[data-lp] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 </style>
 </head>
@@ -2697,7 +2725,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
       if (assister && assister !== striker) ASC.set(assister, (ASC.get(assister) || 0) + 1);
       if (atkTeam === home) hs++; else as++;
       if (ST) ST.goal++;
-      (MS.gl = MS.gl || []).push([striker, assister, atkTeam === home ? "home" : "away"]); MS.dmin = Math.min(MS.dmin || 0, hs - as); MS.dmax = Math.max(MS.dmax || 0, hs - as);
+      (MS.gl = MS.gl || []).push([striker, assister, atkTeam === home ? "home" : "away", min]); MS.dmin = Math.min(MS.dmin || 0, hs - as); MS.dmax = Math.max(MS.dmax || 0, hs - as);
       if (isCup) { striker.cup_goals = (parseInt(striker.cup_goals) || 0) + 1; striker.career_cup_goals = (parseInt(striker.career_cup_goals) || 0) + 1; }
       else { striker.league_goals = (parseInt(striker.league_goals) || 0) + 1; striker.career_league_goals = (parseInt(striker.career_league_goals) || 0) + 1; }
       if (assister && assister !== striker) {
@@ -3149,12 +3177,41 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   for (const p of home.roster) if ((hPart.get(p) || 0) > 0) { p.career_apps = (parseInt(p.career_apps) || 0) + 1; p.season_apps = (p.season_apps || 0) + 1; }
   for (const p of away.roster) if ((aPart.get(p) || 0) > 0) { p.career_apps = (parseInt(p.career_apps) || 0) + 1; p.season_apps = (p.season_apps || 0) + 1; }
 
-  let pk = false;
+  // カップ戦の引き分け：延長戦（30分）→ それでも同点ならPK戦。表示用の本当のスコアは disp に入れる
+  let pk = false, disp = null;
   if (isCup && hs === as) {
     pk = true;
-    if (verbose) yield ev(90, "延長・PK戦に突入…", "info", 1200);
-    if (rnd() > 0.5) hs++; else as++;
-    if (verbose) yield ev(120, `決着がつきました！（${hs} - ${as}）`, "goal", 1000);
+    const str = S_ => S_.filter(p => p.pos !== "GK").reduce((a, p) => a + getOvr(p), 0) / Math.max(1, S_.filter(p => p.pos !== "GK").length);
+    const sh = str(hS), sa = str(aS), tired = .22;
+    if (verbose) yield ev(90, "90分では決着がつかず、延長戦へ！", "phase", 1200);
+    const etGoal = (side, S_, t) => { const c = S_.filter(p => p.pos !== "GK"); const p = weighted(c.map(q => [q, (q.pos === "FW" ? 3 : q.pos === "MF" ? 1.5 : .4) * (V(q, "finishing") / 70)])); 
+      if (side === "home") hs++; else as++; p.cup_goals = (parseInt(p.cup_goals) || 0) + 1; p.career_cup_goals = (parseInt(p.career_cup_goals) || 0) + 1; (MS.gl = MS.gl || []).push([p, null, side, t]); return p; };
+    for (const [side, S_, mine, opp] of [["home", hS, sh, sa], ["away", aS, sa, sh]]) {
+      const pr = cl(tired + (mine - opp) * .02, .08, .45);
+      if (rnd() < pr) { const t = randint(91, 120), p = etGoal(side, S_, t); if (verbose) yield { ...ev(t, `⚽ GOAL!! 延長戦で ${p.name} が決めた！（${hs}-${as}）`, "goal " + side, 1200), goal: side }; }
+    }
+    const et = [hs, as];
+    if (hs === as) {
+      if (verbose) yield ev(120, `延長戦でも決着がつかず（${hs}-${as}）、PK戦へ！`, "phase", 1400);
+      const kickers = S_ => S_.filter(p => p.pos !== "GK").sort((a, b) => (V(b, "composure") + V(b, "finishing")) - (V(a, "composure") + V(a, "finishing")));
+      const gkOf_ = S_ => S_.find(p => p.pos === "GK") || S_[0];
+      const kH = kickers(hS), kA = kickers(aS), gH = gkOf_(hS), gA = gkOf_(aS);
+      const shoot = (k, g) => rnd() < cl(.76 + ((V(k, "composure") * .6 + V(k, "finishing") * .4) - (V(g, "reflexes") * .7 + V(g, "positioning") * .3)) / 250 + (sk(g, "PKストッパー") ? -.08 : 0), .55, .92);
+      let ph = 0, pa = 0, i = 0, line = [];
+      for (; i < 30; i++) {
+        const kh = kH[i % kH.length], ka = kA[i % kA.length], okH = shoot(kh, gA), okA = shoot(ka, gH);
+        if (okH) ph++; if (okA) pa++;
+        line.push(`${okH ? "○" : "×"}${okA ? "○" : "×"}`);
+        if (verbose) yield ev(120, `PK ${i + 1}本目：${kh.name} ${okH ? "成功" : "失敗"} / ${ka.name} ${okA ? "成功" : "失敗"}（${ph}-${pa}）`, okH || okA ? "info" : "muted", 700);
+        if (i < 4) { const left = 4 - i; if (ph > pa + left || pa > ph + left) break; } else if (ph !== pa) break;
+      }
+      disp = { hs: et[0], as: et[1], et: true, pk: [ph, pa] };
+      if (ph > pa) hs++; else as++;   // 勝ち上がりの判定用（内部のスコア）
+      if (verbose) yield ev(120, `PK戦 ${ph}-${pa} で ${ph > pa ? home.name : away.name} が勝ち上がり！`, "goal", 1400);
+    } else {
+      disp = { hs: et[0], as: et[1], et: true, pk: null };
+      if (verbose) yield ev(120, `延長戦の末、${hs > as ? home.name : away.name} が勝利！（${hs}-${as}）`, "goal", 1200);
+    }
   }
 
   if (!isCup) {
@@ -3193,7 +3250,7 @@ function* matchGen(home, away, { verbose = false, isCup = false, myStarters = nu
   for (const t of [home, away]) for (const p of t.roster) if (p.susp > 0 && !sentOff.includes(p)) p.susp--;
   if (playerTeam) for (const p of sentOff) if ((playerTeam === home ? home : away).roster.includes(p)) logs.push(L(`🟥 ${p.name} は退場のため、次の${p.susp}試合は出場停止です。`, "bad"));
   MS.part = { home: hPart, away: aPart }; MS.hs = hs; MS.as = as;
-  return { hs, as, rew, logs, pk, stats: MS };
+  return { hs, as, rew, logs, pk, disp, stats: MS };
 }
 
 function runMatch(home, away, opts = {}) {
@@ -4743,7 +4800,11 @@ const CREST_SHAPES = [
   "M20 1l17 6v15c0 10-7 16-17 20C10 38 3 32 3 22V7z",
   "M7 2h26l4 5v16c0 10-8 15-17 19C11 38 3 33 3 23V7z",
 ];
+let _clubSet = null;
+const isClubName = n => { if (!_clubSet) { _clubSet = new Set(); for (const c of DATA.COUNTRIES || []) for (const [t] of [...(c.d1 || []), ...(c.d2 || [])]) _clubSet.add(t); } return _clubSet.has(n); };
 function crest(name, size = 34) {
+  // 代表チーム（国名）は国旗で表示
+  if (typeof flagOf === "function" && !isClubName(name)) { const f = flagOf(name); if (f) return `<span class="crest-flag" style="font-size:${Math.round(size * .8)}px;width:${size}px;height:${size}px">${f}</span>`; }
   if (CREST_IMG[name]) return `<img class="crest-img" src="${CREST_IMG[name]}" width="${size}" height="${size}" alt="">`;
   const hs = hashStr(name);
   let [tla, c1, c2] = (DATA.CLUB_STYLE || {})[name] || [name.slice(0, 3), "", ""];
@@ -4849,25 +4910,75 @@ async function loadCloudCrests() {
   } catch (e) {}
 }
 
-// ---------------- 保存（端末 + クラウド） ----------------
-const LS_KEY = "soccer_m_save_v1";
+// ---------------- 保存（端末 + クラウド）・セーブスロット ----------------
+const LS_KEY = "soccer_m_save_v1", SLOT_LS = "soccer_m_slot", SLOTS = 3;
+let curSlot = 1; try { curSlot = Math.min(SLOTS, Math.max(1, Number(localStorage.getItem(SLOT_LS)) || 1)); } catch (e) {}
+const setSlot = n => { curSlot = n; try { localStorage.setItem(SLOT_LS, String(n)); } catch (e) {} };
+const lsKey = n => n === 1 ? LS_KEY : LS_KEY + "_s" + n;
+// IndexedDB（容量が大きい）。使えない環境では localStorage にフォールバック
+const IDBS = { db: null, ok: false, ready: false, meta: {} };
+function idbOpen() {
+  return new Promise(res => {
+    try {
+      const rq = indexedDB.open("soccer_m", 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore("saves");
+      rq.onsuccess = () => res(rq.result); rq.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+const idbReq = (mode, f) => new Promise((res, rej) => { try { const tx = IDBS.db.transaction("saves", mode); const r = f(tx.objectStore("saves")); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); } catch (e) { rej(e); } });
+const idbGet = k => idbReq("readonly", st => st.get(k));
+const idbPut = (k, v) => idbReq("readwrite", st => st.put(v, k));
+const idbDel = k => idbReq("readwrite", st => st.delete(k));
+const metaOf = (o, Gx) => ({ savedAt: o.savedAt, team: Gx.teams && Gx.teams[Gx.myIdx] ? Gx.teams[Gx.myIdx].name : "?", date: Gx.date });
+async function initSlots() {
+  IDBS.db = await idbOpen(); IDBS.ok = !!IDBS.db;
+  if (IDBS.ok) {
+    try {
+      // 旧セーブ（localStorage）をスロット1へ移行
+      const old = localStorage.getItem(LS_KEY);
+      if (old && !(await idbGet("meta1"))) { const o = JSON.parse(old); await idbPut("save1", o); await idbPut("meta1", metaOf(o, o.G)); }
+      if (old) localStorage.removeItem(LS_KEY);
+      for (let n = 1; n <= SLOTS; n++) IDBS.meta[n] = (await idbGet("meta" + n)) || null;
+    } catch (e) { IDBS.ok = false; }
+  }
+  if (!IDBS.ok) for (let n = 1; n <= SLOTS; n++) { try { const raw = localStorage.getItem(lsKey(n)); if (raw) { const o = JSON.parse(raw); IDBS.meta[n] = metaOf(o, o.G); } else IDBS.meta[n] = null; } catch (e) { IDBS.meta[n] = null; } }
+  IDBS.ready = true;
+  if (T.title) render();
+}
+let _saveQ = Promise.resolve(), _pend = null, _writing = false;
+// 書き込み中に次の保存が来たら、最新の1件だけを続けて書く（毎日の自動保存が詰まらないように）
+function idbFlush() {
+  if (_writing || !_pend) return; _writing = true;
+  const { n, o, meta } = _pend; _pend = null;
+  _saveQ = idbPut("save" + n, o).then(() => idbPut("meta" + n, meta)).then(() => { T.saveFail = false; })
+    .catch(() => { if (!T.saveFail) { T.saveFail = true; toast("⚠️ この端末への保存に失敗しました。クラブタブの「ファイルに書き出す」でバックアップしてください", "bad"); } })
+    .then(() => { _writing = false; idbFlush(); });
+}
+const saveIdle = async () => { while (_writing || _pend) { idbFlush(); await _saveQ; } };
 function persist() {
   if (!G) return;
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ savedAt: Date.now(), G: encodeSave(G) })); T.saveFail = false; }
+  const o = { savedAt: Date.now(), G: encodeSave(G) }, n = curSlot, meta = metaOf(o, G);
+  IDBS.meta[n] = meta;
+  if (IDBS.ok) { _pend = { n, o, meta }; idbFlush(); return; }
+  try { localStorage.setItem(lsKey(n), JSON.stringify(o)); T.saveFail = false; }
   catch (e) {   // 容量不足などで保存できなかった
     if (!T.saveFail) { T.saveFail = true; setTimeout(() => toast("⚠️ この端末への保存に失敗しました（容量不足の可能性）。クラブタブの「ファイルに書き出す」でバックアップしてください", "bad"), 50); }
   }
 }
-let _localCache = null;
-function readLocal() {
+async function readSlot(n) {
   try {
-    const raw = localStorage.getItem(LS_KEY); if (!raw) return null;
-    if (_localCache && _localCache.raw === raw) return _localCache.v;
-    const o = JSON.parse(raw); const v = { savedAt: o.savedAt, G: migrateSave(o.G) };
-    _localCache = { raw, v }; return v;
+    await saveIdle();
+    const o = IDBS.ok ? await idbGet("save" + n) : JSON.parse(localStorage.getItem(lsKey(n)) || "null");
+    return o ? { savedAt: o.savedAt, G: migrateSave(o.G) } : null;
   } catch (e) { return null; }
 }
-const Cloud = { db: null, uid: null, ready: false, meta: null };
+async function deleteSlot(n) {
+  try { if (IDBS.ok) { await saveIdle(); await idbDel("save" + n); await idbDel("meta" + n); } else localStorage.removeItem(lsKey(n)); } catch (e) {}
+  IDBS.meta[n] = null;
+}
+const Cloud = { db: null, uid: null, ready: false, meta: null, metas: {} };
+const cPre = n => n === 1 ? "save" : "save" + n;   // スロット1は従来の名前のまま
 async function initCloud() {
   try {
     if (!window.claude || !window.claude.use) return;
@@ -4876,8 +4987,8 @@ async function initCloud() {
     const uid = await user.id();
     if (!uid) return;
     Cloud.db = db; Cloud.uid = uid; Cloud.ready = true;
-    const snap = await db.doc(`data/users/${uid}/save_meta`).get();
-    Cloud.meta = snap.exists ? snap.data() : null;
+    for (let n = 1; n <= SLOTS; n++) { const snap = await db.doc(`data/users/${uid}/${cPre(n)}_meta`).get(); Cloud.metas[n] = snap.exists ? snap.data() : null; }
+    Cloud.meta = Cloud.metas[curSlot];
     if (T.title) render();
     loadCloudCrests();
   } catch (e) { Cloud.ready = false; }
@@ -4886,18 +4997,17 @@ const CHUNK = 180000;
 async function cloudSave() {
   if (!Cloud.ready || !G) return false;
   try {
-    const s = JSON.stringify(encodeSave(G));
-    const n = Math.ceil(s.length / CHUNK);
-    for (let i = 0; i < n; i++) await Cloud.db.doc(`data/users/${Cloud.uid}/save_${i}`).set({ s: s.slice(i * CHUNK, (i + 1) * CHUNK) });
+    const s = JSON.stringify(encodeSave(G)), n = Math.ceil(s.length / CHUNK), pre = cPre(curSlot);
+    for (let i = 0; i < n; i++) await Cloud.db.doc(`data/users/${Cloud.uid}/${pre}_${i}`).set({ s: s.slice(i * CHUNK, (i + 1) * CHUNK) });
     const meta = { n, savedAt: Date.now(), date: G.date, team: me().name };
-    await Cloud.db.doc(`data/users/${Cloud.uid}/save_meta`).set(meta);
-    Cloud.meta = meta;
+    await Cloud.db.doc(`data/users/${Cloud.uid}/${pre}_meta`).set(meta);
+    Cloud.metas[curSlot] = Cloud.meta = meta;
     return true;
   } catch (e) { return false; }
 }
-async function cloudLoad() {
-  const m = Cloud.meta; let s = "";
-  for (let i = 0; i < m.n; i++) { const snap = await Cloud.db.doc(`data/users/${Cloud.uid}/save_${i}`).get(); s += snap.data().s; }
+async function cloudLoad(slot) {
+  const m = Cloud.metas[slot], pre = cPre(slot); let s = "";
+  for (let i = 0; i < m.n; i++) { const snap = await Cloud.db.doc(`data/users/${Cloud.uid}/${pre}_${i}`).get(); s += snap.data().s; }
   return migrateSave(JSON.parse(s));
 }
 
@@ -5057,7 +5167,7 @@ function playLeague(live) {
   const finish = r => {
     Object.assign(res[mine.row], { hs: r.hs, as: r.as });
     G.day.results = res;
-    G.day.my = { home: mine.home.name, away: mine.away.name, homeMine: mine.home === m, hs: r.hs, as: r.as, logs: r.logs, label };
+    G.day.my = { home: mine.home.name, away: mine.away.name, homeMine: mine.home === m, hs: r.hs, as: r.as, goals: goalList(r.stats), logs: r.logs, label };
     recordMyMatch(r.hs, r.as, mine.home === m, false, r.stats);
     st.round += 1; G.day.played = true;
     persist(); render(); window.scrollTo(0, 0);
@@ -5085,17 +5195,17 @@ function playCup(live) {
     const t1 = G.teams[ct[i]], t2 = G.teams[ct[i + 1]];
     const pr = { i1: ct[i], i2: ct[i + 1] };
     if (t1 === m || t2 === m) { mine = pr; pr.mine = true; }
-    else { const r = runMatch(t1, t2, { isCup: true, cupWin: CUP_REW[G.day.round] || 3000 }); pr.s1 = r.hs; pr.s2 = r.as; pr.pk = r.pk; }
+    else { const r = runMatch(t1, t2, { isCup: true, cupWin: CUP_REW[G.day.round] || 3000 }); pr.s1 = r.hs; pr.s2 = r.as; pr.pk = r.pk; pr.disp = r.disp; }
     pairs.push(pr);
   }
   const finish = r => {
-    if (mine) { mine.s1 = r.hs; mine.s2 = r.as; mine.pk = r.pk; }
+    if (mine) { mine.s1 = r.hs; mine.s2 = r.as; mine.pk = r.pk; mine.disp = r.disp; }
     const next = pairs.map(p => (p.bye != null ? p.bye : p.s1 > p.s2 ? p.i1 : p.i2));
-    const res = pairs.map(p => (p.bye != null ? { bye: G.teams[p.bye].name } : { home: G.teams[p.i1].name, away: G.teams[p.i2].name, hs: p.s1, as: p.s2, pk: p.pk, mine: !!p.mine }));
+    const res = pairs.map(p => (p.bye != null ? { bye: G.teams[p.bye].name } : { home: G.teams[p.i1].name, away: G.teams[p.i2].name, hs: p.s1, as: p.s2, pk: p.pk, disp: p.disp, mine: !!p.mine }));
     G.day.results = res;
     if (mine) {
       const won = (mine.i1 === G.myIdx && mine.s1 > mine.s2) || (mine.i2 === G.myIdx && mine.s2 > mine.s1);
-      G.day.my = { home: G.teams[mine.i1].name, away: G.teams[mine.i2].name, homeMine: mine.i1 === G.myIdx, hs: mine.s1, as: mine.s2, pk: mine.pk, logs: r.logs, won, label: `${CUP_NAME} ${G.day.round}` };
+      G.day.my = { home: G.teams[mine.i1].name, away: G.teams[mine.i2].name, homeMine: mine.i1 === G.myIdx, hs: mine.s1, as: mine.s2, pk: mine.pk, disp: mine.disp, goals: goalList(r.stats), logs: r.logs, won, label: `${CUP_NAME} ${G.day.round}` };
       recordMyMatch(mine.s1, mine.s2, mine.i1 === G.myIdx, true, r.stats);
     }
     G.cup_teams = next;
@@ -5150,13 +5260,18 @@ function abroadBlock(bg, title = "他リーグの結果") {
     <ul class="scores">${b.res.map(x => `<li><span>${h(x.home)}</span><b>${x.hs} - ${x.as}</b><span>${h(x.away)}</span></li>`).join("")}</ul></details>`).join("")}</section>`;
 }
 
+// 得点者の一覧（[side, 名前, アシスト, 分]）と、カップ戦の延長・PKを含むスコア表示
+const goalList = st => ((st && st.gl) || []).map(([p, a, side, t]) => [side, p.name, a && a !== p ? a.name : null, t || null]).sort((x, y) => (x[3] || 0) - (y[3] || 0));
+const goalTxt = g => `<p>⚽ ${h(g[1])}${g[3] ? ` <small>${g[3]}'</small>` : ""}</p>`;
+const scoreTxt = (hs, as, disp, pk) => disp ? `${disp.hs} - ${disp.as}${disp.pk ? `<small> PK${disp.pk[0]}-${disp.pk[1]}</small>` : "<small> 延長</small>"}` : `${hs} - ${as}${pk ? "<sup>PK</sup>" : ""}`;
 function scoreCard(my) {
   const res = my.hs === my.as ? "draw" : (my.hs > my.as) === my.homeMine ? "win" : "lose";
   const label = res === "win" ? "勝利" : res === "lose" ? "敗北" : "引き分け";
   return `<div class="result ${res}">
     <div class="r-label">${h(my.label)}</div>
-    <div class="r-row"><span class="${my.homeMine ? "mine" : ""}">${crest(my.home, 40)}${h(my.home)}</span><b>${my.hs} - ${my.as}</b><span class="${!my.homeMine ? "mine" : ""}">${crest(my.away, 40)}${h(my.away)}</span></div>
-    <div class="r-verdict">${label}${my.pk ? "（延長・PK）" : ""}</div>
+    <div class="r-row"><span class="${my.homeMine ? "mine" : ""}">${crest(my.home, 40)}${h(my.home)}</span><b>${my.disp ? `${my.disp.hs} - ${my.disp.as}` : `${my.hs} - ${my.as}`}</b><span class="${!my.homeMine ? "mine" : ""}">${crest(my.away, 40)}${h(my.away)}</span></div>
+    <div class="r-verdict">${label}${my.disp ? (my.disp.pk ? `（延長・PK ${my.disp.pk[0]}-${my.disp.pk[1]}）` : "（延長）") : ""}</div>
+    ${my.goals && my.goals.length ? `<div class="r-goals"><div>${my.goals.filter(g => g[0] === "home").map(goalTxt).join("")}</div><div>${my.goals.filter(g => g[0] === "away").map(goalTxt).join("")}</div></div>` : ""}
   </div>`;
 }
 
@@ -5186,18 +5301,26 @@ function render() {
 
 function renderTitle() {
   if (T.title === "pick") return renderPick();
-  const loc = readLocal();
-  const cm = Cloud.meta;
-  const newerCloud = cm && (!loc || cm.savedAt > loc.savedAt + 1000);
-  const cont = loc ? `<button class="btn primary wide" data-act="continue">続きから<small>${h(loc.G.teams[loc.G.myIdx].name)} · ${fmtDate(loc.G.date)}</small></button>` : "";
-  const cloudBtn = newerCloud ? `<button class="btn wide" data-act="cloud-load">クラウドから続ける<small>${h(cm.team)} · ${fmtDate(cm.date)}</small></button>` : "";
+  const slots = [];
+  for (let n = 1; n <= SLOTS; n++) {
+    const m = IDBS.meta[n], cm = Cloud.metas[n], newerCloud = cm && (!m || cm.savedAt > m.savedAt + 1000);
+    const cur = n === curSlot ? " cur" : "";
+    if (T.slotDel === n) { slots.push(`<div class="slot${cur}"><b>スロット${n}を削除しますか？</b><p class="muted small">${m ? `${h(m.team)} · ${fmtDate(m.date)}` : ""}（元に戻せません）</p><div class="slot-btns"><button class="btn" data-act="slot-del-cancel">やめる</button><button class="btn danger" data-act="slot-del-go" data-arg="${n}">削除する</button></div></div>`); continue; }
+    slots.push(`<div class="slot${cur}">
+      <div class="slot-head"><span class="slot-no">${n}</span>${m ? `<span>${crest(m.team)} <b>${h(m.team)}</b><small class="muted"> ${fmtDate(m.date)}</small></span>` : `<span class="muted">空きスロット</span>`}</div>
+      <div class="slot-btns">
+        ${m ? `<button class="btn primary" data-act="slot-cont" data-arg="${n}">続きから</button>` : `<button class="btn primary" data-act="slot-new" data-arg="${n}">新しく始める</button>`}
+        ${newerCloud ? `<button class="btn" data-act="cloud-load" data-arg="${n}">☁️ クラウド<small>${h(cm.team)} · ${fmtDate(cm.date)}</small></button>` : ""}
+        <button class="btn ghost" data-act="slot-file" data-arg="${n}">📂 読込</button>
+        ${m ? `<button class="btn ghost" data-act="slot-new" data-arg="${n}">新規</button><button class="btn ghost" data-act="slot-del" data-arg="${n}">🗑</button>` : ""}
+      </div></div>`);
+  }
   return `<div class="title">
     <div class="title-mark"><div class="pitch-lines"></div><h1>Football<br>Simulator</h1><p>5大リーグ 1部・2部 全${COUNTRIES.reduce((n, c) => n + c.d1.length + c.d2.length, 0)}クラブ／${CUP_NAME}</p></div>
     <div class="title-actions">
-      ${cont}${cloudBtn}
-      <button class="btn ${loc ? "" : "primary"} wide" data-act="new-career">新しく始める<small>実在クラブを選んで監督に就任</small></button>
-      ${loc ? `<p class="muted small">新しく始めると端末内のセーブは上書きされます。</p>` : ""}
-      <label class="btn ghost wide filebtn">セーブファイルを読み込む<small>書き出したセーブ・PC版の savegame.json</small><input type="file" id="fileIn" accept=".json,application/json"></label>
+      ${IDBS.ready ? slots.join("") : `<p class="muted">セーブデータを確認中…</p>`}
+      ${T.slotWarn ? `<p class="muted small">スロット${T.slotWarn}のセーブは新しいキャリアで上書きされます。</p>` : ""}
+      <input type="file" id="fileIn" accept=".json,application/json" hidden>
     </div></div>`;
 }
 
@@ -5403,7 +5526,7 @@ function matchPrep(kind) {
       ${inMatch ? `<div class="chips">${st}</div>
       <button class="btn primary wide big" data-act="${kind === "cup" ? "cup-play" : "league-play"}" data-arg="live">試合開始（実況）</button>
       <div class="grid3 keep3">
-        <button class="act sm" data-act="tab" data-arg="tactics"><b>戦術</b><small>先発・作戦</small></button>
+        <button class="act sm" data-act="tac-match"><b>戦術</b><small>この試合だけ</small></button>
         <button class="act sm" data-act="sheet" data-arg="opp"><b>相手名簿</b><small>${h(opp.t.name)}</small></button>
         <button class="act sm" data-act="${kind === "cup" ? "cup-play" : "league-play"}" data-arg="quick"><b>スキップ</b><small>結果のみ</small></button>
       </div>` : `<button class="btn primary wide" data-act="cup-play" data-arg="quick">試合結果を見る</button>`}
@@ -5430,7 +5553,7 @@ function matchResult(kind) {
       ${abroadBlock(d.bg)}
       ${nextBar("end-day", weekday(D(G.date)) === 5 ? "日曜日へ" : "次の日へ")}`;
   } else {
-    list = `<section class="card"><h2 class="ch">${h(d.round)} 全試合結果</h2><ul class="scores">${d.results.map(r => r.bye ? `<li><span>${h(r.bye)}</span><b>不戦勝</b><span></span></li>` : `<li class="${r.mine ? "mine" : ""}"><span>${h(r.home)}</span><b>${r.hs} - ${r.as}${r.pk ? "<sup>PK</sup>" : ""}</b><span>${h(r.away)}</span></li>`).join("")}</ul></section>`;
+    list = `<section class="card"><h2 class="ch">${h(d.round)} 全試合結果</h2><ul class="scores">${d.results.map(r => r.bye ? `<li><span>${h(r.bye)}</span><b>不戦勝</b><span></span></li>` : `<li class="${r.mine ? "mine" : ""}"><span>${h(r.home)}</span><b>${scoreTxt(r.hs, r.as, r.disp, r.pk)}</b><span>${h(r.away)}</span></li>`).join("")}</ul></section>`;
     if (d.final) {
       const f = d.final;
       list += `<section class="card trophy"><h2 class="ch">🏆 ${CUP_NAME} 優勝：${h(f.winner)}</h2><p>大会主催者より優勝賞金 ${yen(30000)} が授与されました。${f.mine ? `<br><b>おめでとうございます！ 所持金が ${yen(me().money)} になりました。</b>` : ""}</p>
@@ -5602,12 +5725,12 @@ function renderMenu() {
     <section class="card"><h2 class="ch">歴史と実績</h2>
       <button class="btn wide" data-act="sheet" data-arg="contracts">📝 契約${active(m).some(p => p.ct != null && ctLeft(p) <= 1) ? `（今季まで ${active(m).filter(p => p.ct != null && ctLeft(p) <= 1).length}人）` : ""}</button>
       <div class="row2"><button class="btn wide" data-act="sheet" data-arg="history">🏛️ クラブの歴史</button><button class="btn wide" data-act="sheet" data-arg="ach">🏅 実績 ${Object.keys(G.ach || {}).length}/${ACH.length}</button></div></section>
-    <section class="card"><h2 class="ch">セーブ</h2>
+    <section class="card"><h2 class="ch">セーブ <small class="muted">スロット${curSlot}</small></h2>
       <p class="muted small">${HAS_CLOUD() ? "1日進むごとに端末に自動保存し、毎週月曜にクラウドへも保存します。" : "1日進むごとにこのスマホ（ブラウザ）の中に自動保存します。ブラウザのデータを消去するとセーブも消えるので、ときどき「ファイルに書き出す」でバックアップしてください。"}</p>
       <button class="btn primary wide" data-act="save">今すぐセーブ</button>
       ${HAS_CLOUD() ? `<p class="muted small">${cloud}</p>` : ""}
       <button class="btn wide" data-act="export">ファイルに書き出す</button>
-      <p class="muted small">${HAS_CLOUD() ? "別の端末で続けたいときや、念のためのバックアップに使えます。" : "セーブファイルがダウンロードフォルダに保存されます。別の端末で続けるときは、そのファイルをタイトル画面の「セーブファイルを読み込む」で読み込みます。"}</p>
+      <p class="muted small">${HAS_CLOUD() ? "別の端末で続けたいときや、念のためのバックアップに使えます。" : "セーブファイルがダウンロードフォルダに保存されます。別の端末で続けるときは、そのファイルをタイトル画面のスロットの「📂 読込」で読み込みます。"}</p>
     </section>
     <section class="card"><h2 class="ch">エンブレム画像</h2>
       <p class="muted small">クラブごとに、スマホに保存してある画像をエンブレムとして設定できます。${HAS_CLOUD() ? "" : "設定した画像はこのスマホの中だけに保存されます。"}</p>
@@ -5615,7 +5738,7 @@ function renderMenu() {
       <button class="btn ghost wide" data-act="crest-bulk">画像をまとめて設定する</button>
       <p class="muted small">「まとめて設定」では、複数の画像をいっぺんに選ぶと、ファイル名（例：Liverpool_FC.png、FC_Barcelona_crest.png）からクラブを見分けて設定します。${T.crestBulk && T.crestBulk.miss.length ? `<br><span class="bad">前回クラブが見つからなかった画像：${T.crestBulk.miss.slice(0, 8).map(h).join("、")}${T.crestBulk.miss.length > 8 ? " ほか" : ""}</span>` : ""}</p></section>
     <section class="card"><h2 class="ch">その他</h2>
-      <button class="btn ghost wide" data-act="to-title">タイトルへ戻る</button>
+      <button class="btn ghost wide" data-act="to-title">タイトルへ戻る（セーブスロットの切り替え）</button>
       ${conf ? `<div class="confirm"><p>今のキャリアを消して最初からやり直しますか？</p><div class="row2"><button class="btn ghost" data-act="confirm-cancel">やめる</button><button class="btn danger" data-act="reset-go">消して始める</button></div></div>`
              : `<button class="btn ghost wide dangertxt" data-act="reset-ask">キャリアを消して最初から</button>`}
     </section>`;
@@ -5623,7 +5746,12 @@ function renderMenu() {
 
 // ---------------- シート（下から出るパネル） ----------------
 function openSheet(s) { T.sheets.push(s); renderSheet(); }
-function closeSheet(all) { if (all) T.sheets = []; else T.sheets.pop(); renderSheet(); render(); }
+function closeSheet(all) {
+  // 個別特訓の結果を見たあとに閉じたときも、その日を終える（特訓だけして日付が進まないことを防ぐ）
+  const it = T.sheets.find(x => x.result && x.p && T.sheets.indexOf(x) >= 0 && (x.kind === "intensive" || /^intensive/.test(x.kind || "")));
+  if (it) { T.sheets = [it]; ACTIONS["int-finish"](); return; }
+  if (all) T.sheets = []; else T.sheets.pop(); renderSheet(); render();
+}
 function renderSheet() {
   const s = T.sheets[T.sheets.length - 1];
   if (!s) { $sheet.hidden = true; $sheet.innerHTML = ""; delete $sheet.dataset.key; T.sheetScroll = {}; document.body.classList.remove("sheet-on"); return; }
@@ -5659,8 +5787,9 @@ const SHEETS = {
       // 移籍リスト：クラブに所属している選手は獲得オファー（クラブ→本人の順に回答）、無所属の選手は契約交渉
       const m = me(), it = T.market[s.idx] || {};
       if (active(m).length >= MAX_ROSTER && m.roster.length >= MAX_ROSTER) foot = `<p class="bad">チームの登録人数が上限（${MAX_ROSTER}人）です。先に名簿から選手との契約を解除してください。</p>`;
+      else if (it.fromIdx != null && teamOfP(p) === m) foot = `<p class="good">このクラブに加入済みです。</p>`;
       else if (it.fromIdx != null) { const b = bidOf(p); foot = b ? `<p class="small">この移籍期間のオファー：<b>${{ wait: "回答待ち", counter: "クラブから上乗せの要求あり", club_no: "クラブが断りました", player_no: "選手が断りました", done: "獲得しました", cancel: "取り下げました" }[b.status]}</b></p>` : `<button class="btn primary wide" data-act="sheet" data-arg="bid">獲得オファーを出す</button>`; }
-      else foot = `<button class="btn primary wide" data-act="sheet" data-arg="fa">契約交渉をする</button>`;
+      else foot = bidOf(p) ? `<p class="small">提示の状況：<b>${{ wait: "回答待ち", club_no: "成立しませんでした", player_no: "断られました", done: "契約しました" }[bidOf(p).status] || ""}</b></p>` : `<button class="btn primary wide" data-act="sheet" data-arg="fa">契約交渉をする</button>`;
     }
     return {
       title: h(p.name),
@@ -5823,15 +5952,20 @@ function buildMarket() {
 const topSheet = () => T.sheets[T.sheets.length - 1];
 const ACTIONS = {
   tab(k) { T.tab = k; T.confirm = null; render(); window.scrollTo(0, 0); },
-  continue() { const s = readLocal(); if (!s) { toast("セーブデータを読み込めませんでした", "bad"); return; } G = s.G; _localCache = null; T.title = false; T.tab = "home"; if (!G.day) beginDay(); else { persist(); render(); } },
-  "new-career"() { T.world = null; T.pick.idx = null; T.title = "pick"; render(); window.scrollTo(0, 0); },
+  async "slot-cont"(n) { n = Number(n); const s = await readSlot(n); if (!s) { toast("セーブデータを読み込めませんでした", "bad"); return; } setSlot(n); Cloud.meta = Cloud.metas[n] || null; G = s.G; T.title = false; T.tab = "home"; T.slotWarn = null; if (!G.day) beginDay(); else { persist(); render(); } },
+  "slot-new"(n) { n = Number(n); setSlot(n); Cloud.meta = Cloud.metas[n] || null; T.slotWarn = IDBS.meta[n] ? n : null; T.world = null; T.pick.idx = null; T.title = "pick"; render(); window.scrollTo(0, 0); },
+  "slot-file"(n) { T.fileSlot = Number(n); const el = document.getElementById("fileIn"); if (el) { el.value = ""; el.click(); } },
+  "slot-del"(n) { T.slotDel = Number(n); render(); },
+  "slot-del-cancel"() { T.slotDel = null; render(); },
+  async "slot-del-go"(n) { await deleteSlot(Number(n)); T.slotDel = null; render(); toast("削除しました"); },
+  "new-career"() { ACTIONS["slot-new"](curSlot); },
   "pick-country"(c) { T.pick.country = c; T.pick.idx = null; render(); },
   "pick-div"(d) { T.pick.div = Number(d); T.pick.idx = null; render(); },
   "pick-team"(i) { T.pick.idx = Number(i); render(); },
   "start-club"() { if (T.pick.idx == null) return; const rags = T.pick.rags; startCareer(T.world, T.pick.idx); if (rags) { applyRags(); persist(); render(); } window.scrollTo(0, 0); },
   "pick-rags"() { T.pick.rags = !T.pick.rags; if (T.pick.rags) T.pick.div = 2; T.pick.idx = null; render(); },
   "title-back"() { T.title = true; render(); },
-  async "cloud-load"() { try { toast("クラウドから読み込み中…"); G = await cloudLoad(); T.title = false; T.tab = "home"; if (!G.day) beginDay(); else { persist(); render(); } toast("クラウドのセーブを読み込みました"); } catch (e) { toast("クラウドのセーブを読み込めませんでした", "bad"); } },
+  async "cloud-load"(n) { n = Number(n) || curSlot; try { toast("クラウドから読み込み中…"); G = await cloudLoad(n); setSlot(n); Cloud.meta = Cloud.metas[n]; T.title = false; T.tab = "home"; if (!G.day) beginDay(); else { persist(); render(); } toast("クラウドのセーブを読み込みました"); } catch (e) { toast("クラウドのセーブを読み込めませんでした", "bad"); } },
   train(k) { actTrain(k); window.scrollTo(0, 0); },
   rest() { actRest(); window.scrollTo(0, 0); },
   "rest-until"() { actRestUntilMatch(); window.scrollTo(0, 0); },
@@ -5952,7 +6086,7 @@ const ACTIONS = {
   "to-title"() { persist(); T.title = true; T.sheets = []; render(); },
   "reset-ask"() { T.confirm = "reset"; render(); },
   "confirm-cancel"() { T.confirm = null; render(); },
-  "reset-go"() { try { localStorage.removeItem(LS_KEY); } catch (e) {} G = null; T.confirm = null; T.title = true; render(); },
+  async "reset-go"() { await deleteSlot(curSlot); G = null; T.confirm = null; T.title = true; render(); },
 };
 // スカウト候補の獲得（選手詳細シートから）
 SHEETS._player = SHEETS.player;
@@ -5983,7 +6117,7 @@ document.addEventListener("click", e => {
 document.addEventListener("change", async e => {
   if (e.target.id !== "fileIn") return;
   const f = e.target.files[0]; if (!f) return;
-  try { G = migrateSave(JSON.parse(await f.text())); T.title = false; T.tab = "home"; beginDay([L("📂 セーブファイルを読み込みました。", "head")]); }
+  try { G = migrateSave(JSON.parse(await f.text())); if (T.fileSlot) setSlot(T.fileSlot); T.fileSlot = null; Cloud.meta = Cloud.metas[curSlot] || null; T.title = false; T.tab = "home"; beginDay([L("📂 セーブファイルを読み込みました。", "head")]); }
   catch (err) { toast("読み込めませんでした: " + err.message, "bad"); }
 });
 document.addEventListener("change", e => {
@@ -6004,14 +6138,18 @@ function appBack() {
   if (!T.title && T.tab && T.tab !== "home") { ACTIONS.tab("home"); return; }
 }
 (function backSetup() {
+  // Androidのブラウザは「操作なしで積んだ履歴」を戻るときに飛ばすため、画面を触ったタイミングで目印を積み直す
+  let armed = false;
+  const arm = () => { if (armed) return; const ua = navigator.userActivation; if (ua && !ua.isActive) return; try { history.pushState({ guard: 1 }, ""); armed = true; } catch (err) {} };
   try {
     history.replaceState({ base: 1 }, "");
     history.pushState({ guard: 1 }, "");
     window.addEventListener("popstate", e => {
-      if (e.state && e.state.guard) return;
       appBack();
-      history.pushState({ guard: 1 }, "");
+      armed = false;
+      if (!e.state || !e.state.guard) { try { history.pushState({ guard: 1 }, ""); } catch (err) {} }
     });
+    ["click", "touchend", "keydown"].forEach(t => document.addEventListener(t, e => { if (e.isTrusted) arm(); }, { capture: true, passive: true }));
   } catch (err) { /* 履歴が使えない環境では何もしない */ }
   // iPhoneのホーム画面版：画面の左端から右へスワイプで戻る（Safariで開いているときは本来のスワイプに任せる）
   if (navigator.standalone === true) {
@@ -6027,6 +6165,7 @@ function appBack() {
 // 起動
 (function boot() {
   render();
+  initSlots();
   initCloud();
 })();
 
@@ -6189,7 +6328,7 @@ function renderTactics() {
     const top = Math.max(6, Math.min(92, (0.95 - s.lx * 1.25) * 100)), left = Math.max(9, Math.min(91, s.ly * 100));
     const fit = p ? (s.role === "GK" ? (p.pos === "GK" ? 0 : 3) : posFit(p, s.dp)) : 0, off = fit >= 2;
     const cond = p ? Math.max(0, Math.min(100, p.condition)) : 0;
-    return `<button class="tslot ${off ? "off" : fit === 1 ? "near" : ""} ${auto.includes(i) ? "auto" : ""} ${T.tacSel === i ? "sel" : ""}" style="top:${top}%;left:${left}%" data-act="tac-slot" data-arg="${i}">
+    return `<button class="tslot ${off ? "off" : fit === 1 ? "near" : ""} ${auto.includes(i) ? "auto" : ""} ${T.tacSel === i ? "sel" : ""}" style="top:${top}%;left:${left}%" data-act="tac-slot" data-arg="${i}"${p ? ` data-lp="${m.roster.indexOf(p)}"` : ""}>
       <span class="pos pos-${s.role}">${s.dp || s.role}</span>
       <b>${p ? h(shortNm(p.name)) : "—"}</b>
       <small class="${p ? ovrClass(getOvr(p)) : ""}">${p ? `${getOvr(p)}${p.name === tac.captain ? " ©" : ""}` : ""}</small>
@@ -6200,16 +6339,16 @@ function renderTactics() {
   const RO = { GK: 0, DF: 1, MF: 2, FW: 3 };
   const bench = m.roster.filter(p => !p.retired && !inXI.has(p)).sort((a, b) => (selDp ? posFit(a, selDp) - posFit(b, selDp) : 0) || (usable(b) - usable(a)) || RO[a.pos] - RO[b.pos] || getOvr(b) - getOvr(a));
   const bRow = p => { const c = Math.max(0, Math.min(100, p.condition)), u = usable(p);
-    return `<button class="sbrow ${selDp && posFit(p, selDp) <= 1 ? "match" : ""} ${!u ? "dim" : ""} ${T.benchSel === m.roster.indexOf(p) ? "on" : ""}" data-act="tac-bench" data-arg="${m.roster.indexOf(p)}"><span class="pos pos-${p.pos}">${posTxt(p)}</span><b>${h(p.name)}</b><em class="${u ? ovrClass(getOvr(p)) : ""}">${u ? getOvr(p) : p.injury_days > 0 ? "負傷" : "停止"}</em><i class="cbar ${c < 50 ? "low" : ""}"><i style="width:${c}%"></i></i></button>`; };
+    return `<button class="sbrow ${selDp && posFit(p, selDp) <= 1 ? "match" : ""} ${!u ? "dim" : ""} ${T.benchSel === m.roster.indexOf(p) ? "on" : ""}" data-act="tac-bench" data-arg="${m.roster.indexOf(p)}" data-lp="${m.roster.indexOf(p)}"><span class="pos pos-${p.pos}">${posTxt(p)}</span><b>${h(p.name)}</b><em class="${u ? ovrClass(getOvr(p)) : ""}">${u ? getOvr(p) : p.injury_days > 0 ? "負傷" : "停止"}</em><i class="cbar ${c < 50 ? "low" : ""}"><i style="width:${c}%"></i></i></button>`; };
   const st = TAC_STYLE[tac.style] || TAC_STYLE.balance, ln = TAC_LINE[tac.line] || TAC_LINE.mid;
   const pickRow = (key, label, hint) => {
     const n = tac[key]; const p = n ? players.find(q => q && q.name === n) : null;
     return `<button class="tpick" data-act="sheet" data-arg="tacpick:${key}"><span>${label}</span><b>${p ? h(p.name) : n ? `<s>${h(n)}</s> → おまかせ` : "おまかせ"}</b><small>${hint}</small></button>`;
   };
-  return `<section class="card"><div class="ch-row"><h2 class="ch">フォーメーション<small>先発平均 ${avg}</small></h2></div>
+  return `${tacMatchBanner()}<section class="card"><div class="ch-row"><h2 class="ch">フォーメーション<small>先発平均 ${avg}</small></h2></div>
       <div class="fchips">${Object.keys(FORMATIONS).map(k => `<button class="${m.formation === k ? "on" : ""}" data-act="tac-form" data-arg="${k}">${k}</button>`).join("")}</div>
       <div class="tboard"><div class="tlines"></div>${board}</div>
-      <p class="muted small">${T.tacSel != null && players[T.tacSel] ? `<b>${h(players[T.tacSel].name)}</b> を選択中：入れ替える先発の選手か、下の控えの選手をタップ（もう一度タップで取り消し）` : "選手をタップして選び、続けて別の選手をタップすると入れ替わります。"}${players.some((p, i) => p && p.pos !== slots[i].role) ? `<span class="bad">赤い枠は本来のポジションではない選手です。</span>` : ""}${auto.length ? `<br><span class="bad">けが人などがいたため、点線の位置は自動で入れ替えています。</span>` : ""}</p>
+      <p class="muted small">${T.tacSel != null && players[T.tacSel] ? `<b>${h(players[T.tacSel].name)}</b> を選択中：入れ替える先発の選手か、下の控えの選手をタップ（もう一度タップで取り消し）` : "選手をタップして選び、続けて別の選手をタップすると入れ替わります。長押しで選手の詳細。"}${players.some((p, i) => p && p.pos !== slots[i].role) ? `<span class="bad">赤い枠は本来のポジションではない選手です。</span>` : ""}${auto.length ? `<br><span class="bad">けが人などがいたため、点線の位置は自動で入れ替えています。</span>` : ""}</p>
       <h3 class="sh">控え</h3><div class="subgrid tbench">${bench.map(bRow).join("")}</div>
       <button class="btn ghost wide" data-act="tac-auto">おまかせで並べる</button></section>
     <section class="card"><h2 class="ch">攻撃スタイル</h2>
@@ -6284,6 +6423,38 @@ Object.assign(ACTIONS, {
 // シート名に「tacpick:captain」のような引数を付けられるようにする
 const _sheetAct = ACTIONS.sheet;
 ACTIONS.sheet = k => { if (String(k).startsWith("tacpick:")) openSheet({ kind: "tacpick", key: k.split(":")[1] }); else _sheetAct(k); };
+
+// ===== 試合前の画面から変えた戦術・配置は、その試合だけのもの（試合が終わると元に戻る） =====
+ACTIONS["tac-match"] = () => {
+  const m = me();
+  if (!G.tacBase || G.tacBase.date !== G.date) G.tacBase = { date: G.date, formation: m.formation, tactics: JSON.parse(JSON.stringify(myTac())) };
+  ACTIONS.tab("tactics");
+};
+ACTIONS["tac-keep"] = () => { G.tacBase = null; persist(); render(); toast("いつもの配置として保存しました", "good"); };
+function tacRestore() {
+  const b = G.tacBase; if (!b) return;
+  const m = me(); m.formation = b.formation; m.tactics = b.tactics; G.tacBase = null; T.starters = null;
+}
+const tacMatchBanner = () => G.tacBase && G.tacBase.date === G.date ? `<div class="tacmatch"><span>📋 この試合だけの戦術・配置です（試合が終わると元に戻ります）</span><button class="btn ghost sm" data-act="tac-keep">いつもの配置にする</button></div>` : "";
+
+// 長押しで選手詳細（配置の画面）。長押しのあとのタップ扱いは取り消す
+(function longPress() {
+  let tm = null, sx = 0, sy = 0, fired = false;
+  const cancel = () => { if (tm) { clearTimeout(tm); tm = null; } };
+  document.addEventListener("pointerdown", e => {
+    const el = e.target.closest("[data-lp]"); fired = false; cancel(); if (!el || !G) return;
+    sx = e.clientX; sy = e.clientY;
+    tm = setTimeout(() => {
+      tm = null; const p = me().roster[Number(el.dataset.lp)]; if (!p) return;
+      fired = true; try { navigator.vibrate && navigator.vibrate(15); } catch (err) {}
+      openSheet({ kind: "player", p, mode: "mine" });
+    }, 480);
+  }, { passive: true });
+  document.addEventListener("pointermove", e => { if (tm && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel(); }, { passive: true });
+  ["pointerup", "pointercancel", "scroll"].forEach(t => document.addEventListener(t, cancel, { passive: true, capture: true }));
+  document.addEventListener("click", e => { if (fired) { fired = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener("contextmenu", e => { if (e.target.closest("[data-lp]")) e.preventDefault(); });
+})();
 
 // =====================================================================
 // キャリアの記録：クラブの殿堂・通算記録／年間表彰（年鑑）／実績／おまかせ進行
@@ -6385,6 +6556,7 @@ const awardText = p => p.aw ? Object.entries(p.aw).filter(([, v]) => v > 0).map(
 // ---------------- 監督としての通算成績 ----------------
 const mgr = () => (G.mgr = G.mgr || { w: 0, d: 0, l: 0, since: G.season_year });
 function recordMyMatch(hs, as, home, isCup = false, st = null) {
+  tacRestore();
   const f = home ? hs : as, a = home ? as : hs, M = mgr();
   confAfterMatch(f, a, isCup);
   if (f > a) M.w++; else if (f === a) M.d++; else M.l++;
@@ -6934,7 +7106,7 @@ function wcPlayDay(st, mine) {
   } else {
     const win = res.map(([a, b, r]) => (r.hs > r.as ? a : b));
     for (const w of win) st.stage[w.name]++;
-    st.rounds.push({ name: WC_RN[res.length] || `${res.length * 2}チーム`, res: res.map(([a, b, r]) => [a.name, b.name, r.hs, r.as, r.pk]) });
+    st.rounds.push({ name: WC_RN[res.length] || `${res.length * 2}チーム`, res: res.map(([a, b, r]) => [a.name, b.name, r.hs, r.as, r.disp || r.pk]) });   // disp：延長・PKを含む本当のスコア
     if (win.length === 1) { st.winner = win[0]; st.ko = []; }
     else st.ko = Array.from({ length: win.length / 2 }, (_, i) => [win[2 * i], win[2 * i + 1]]);
   }
@@ -7310,7 +7482,7 @@ function renderWcCoach(c) {
   const my = wcMyMatch(st), myT = st.teams.find(t => t.name === nat), alive = wcAlive(st);
   const grp = st.groups.find(g => g.includes(myT));
   const table = grp ? `<table class="mini"><tr><th></th><th>勝</th><th>分</th><th>敗</th><th>得失</th><th>点</th></tr>${grp.slice().sort(wcCmp).map(t => `<tr class="${t === myT ? "up" : ""}"><td>${fl(t.name)}${h(t.name)}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td><td>${t.gf - t.ga}</td><td><b>${t.points}</b></td></tr>`).join("")}</table>` : "";
-  const last = U.last ? `<h3 class="sh">前回の結果</h3><p class="wcr">${U.last.map(([a, b, r]) => `<span class="${a === myT || b === myT ? "mine" : ""}">${fl(a.name)}${h(a.name)} ${r.hs}-${r.as} ${fl(b.name)}${h(b.name)}${r.pk ? "（PK）" : ""}</span>`).join("")}</p>` : "";
+  const last = U.last ? `<h3 class="sh">前回の結果</h3><p class="wcr">${U.last.map(([a, b, r]) => `<span class="${a === myT || b === myT ? "mine" : ""}">${fl(a.name)}${h(a.name)} ${r.disp ? `${r.disp.hs}-${r.disp.as}` : `${r.hs}-${r.as}`} ${fl(b.name)}${h(b.name)}${r.disp ? (r.disp.pk ? `（PK ${r.disp.pk[0]}-${r.disp.pk[1]}）` : "（延長）") : ""}</span>`).join("")}</p>` : "";
   const body = my ? `<p class="wcnext"><b>${h(wcDayName(st))}</b><br>${fl(my[0].name)}${h(my[0].name)} vs ${fl(my[1].name)}${h(my[1].name)}</p><div class="row2"><button class="btn primary" data-act="wc-play" data-arg="live">実況で観る</button><button class="btn ghost" data-act="wc-play" data-arg="skip">結果だけ</button></div>`
     : `<p>${alive ? "" : `<b>${h(nat)}は敗退しました。</b>`}</p><button class="btn primary wide" data-act="wc-rest">${alive ? "次へ" : "残りの試合を進める"}</button>`;
   const gtab = st.groups.map(g => g.slice().sort(wcCmp).map(t => [t.name, t.won, t.drawn, t.lost, t.gf, t.ga, t.points]));
@@ -7398,11 +7570,21 @@ function satWeekly() {
   const played = m.won + m.drawn + m.lost;
   const order = active(m).slice().sort((a, b) => getOvr(b) - getOvr(a)), xi = new Set(getStarters(m));
   const leader = active(m).some(p => perOf(p) === "リーダー" && (p.season_apps || 0) > 0);
+  // ポジションごとの序列：フォーメーションで必要な人数までは先発、次の1人は控えの1番手（GKの控えはほとんど出ないのが当たり前）
+  const need = { GK: 0, DF: 0, MF: 0, FW: 0 }; for (const sl of slotsFor(m.formation)) need[sl.role]++;
+  const depth = p => order.filter(q => q.pos === p.pos).indexOf(p);
+  // チームの成績：上位なら不満が出にくく、下位なら出やすい
+  const tbl = played >= 5 ? standings(m.division) : null, pct = tbl ? tbl.indexOf(m) / Math.max(1, tbl.length - 1) : .5;
+  const teamMood = pct <= .33 ? .3 : pct >= .67 ? -.3 : 0;
   for (const p of active(m)) {
     if (p.sat == null) p.sat = 70;
-    const P = PER(p), rk = order.indexOf(p);
-    const expShare = xi.has(p) ? .6 : rk < 16 ? .3 : .1, share = played ? (p.season_apps || 0) / played : expShare;
+    const P = PER(p), dr = depth(p), n = need[p.pos] || 1;
+    let expShare = xi.has(p) || dr < n ? .6 : dr === n ? (p.pos === "GK" ? .02 : .25) : .05;
+    if (p.age <= 21) expShare *= .5;                     // 若手は出番が少なくても我慢できる
+    if (p.age >= 33 && !xi.has(p)) expShare *= .6;       // ベテランは控えの役割を受け入れやすい
+    const share = played ? (p.season_apps || 0) / played : expShare;
     let ds = played >= 3 ? clamp((share - expShare) * 6, -2, 1) : 0;
+    ds += teamMood * (perOf(p) === "野心家" ? 2 : 1);
     if (p.wage < baseWage(p) * wageScale(me()) * .8) ds -= 1.5;          // 実力に対して給料が安い
     if (perOf(p) === "野心家" && m.division === 2) ds -= .7;
     ds *= ds < 0 ? P.sat : 1;
@@ -7530,7 +7712,7 @@ const teamOfP = p => G.teams.find(t => t.roster.includes(p)) || null;
 const BID_RATES = [.8, 1, 1.2, 1.5, 2];
 const winKey = () => `${G.season_year}-${month() === 1 ? "w" : "s"}`;
 const clubLevel = t => xiAvg(t) + (t.division === 1 ? 6 : 0) + Math.min(6, (t.fans || 20000) / 20000) + (t.pres || 0) * .5;
-function bidOf(p) { uidOf(p); return (G.bids || []).find(b => b.uid === p.uid && b.win === winKey()); }
+function bidOf(p) { uidOf(p); return (G.bids || []).find(b => b.win === winKey() && (b.uid === p.uid || (p.legend && b.legendId === p.legend))); }
 // 選手詳細に「獲得オファーを出す」
 SHEETS.__player = SHEETS.player;
 SHEETS.player = s => {
@@ -7596,7 +7778,7 @@ function playerDecides(b) {
     t.roster.splice(t.roster.indexOf(p), 1); m.roster.push(p); m.money -= b.fee; t.money += b.fee;
     p.ct = G.season_year + b.years - 1; p.wage = b.wage; p.sat = 75; p.req = false; p.rk = careerNow(p);
     G.news.unshift({ date: G.date, name: p.name, pos: p.pos, age: p.age, ovr: getOvr(p), from: t.name, to: m.name, fee: b.fee });
-    b.status = "done"; T.starters = null;
+    b.status = "done"; T.starters = null; if (T.market) T.market = T.market.filter(x => x.player !== p);
     log = L(`✅ ${b.name} が ${t.name} から加入しました！（移籍金 ${yen(b.fee)}・${b.years}年契約・週給 ${yen(b.wage)}）`, "good");
   }
   G.day.logs.push(log); G.bidNews = true;
@@ -7604,10 +7786,10 @@ function playerDecides(b) {
 }
 // 毎日：回答期限が来たオファーを処理する
 function bidsDaily() {
-  for (const b of G.bids || []) if (b.status === "wait" && b.due <= G.date) { const l = clubDecides(b); if (l) { G.day.logs.push(l); G.bidNews = true; } }
+  for (const b of G.bids || []) if (b.status === "wait" && b.due <= G.date) { const l = b.fa ? faDecides(b) : clubDecides(b); if (l) { G.day.logs.push(l); G.bidNews = true; } }
   // 移籍期間が終わったら、返事待ちの上乗せ要求は流れる
   if (!inWindow()) for (const b of G.bids || []) if (b.status === "counter") b.status = "cancel";
-  if (G.bids && G.bids.length > 40) G.bids = G.bids.slice(-40);
+  if (G.bids && G.bids.length > 40) { const live = G.bids.filter(b => b.status === "wait" || b.status === "counter" || b.win === winKey()); G.bids = live.length > 40 ? live : [...G.bids.filter(b => !live.includes(b)).slice(-(40 - live.length)), ...live]; }   // 返事待ち・今の移籍期間のものは消さない
 }
 function bidNotice() {
   const cs = (G.bids || []).map((b, i) => [b, i]).filter(([b]) => b.status === "counter"), wait = (G.bids || []).filter(b => b.status === "wait").length;
@@ -7616,27 +7798,55 @@ function bidNotice() {
     ${cs.map(([b, i]) => `<div class="sprow"><div><b>${h(b.name)}</b><small>${h(b.club)} が ${yen(b.counter)} を要求（提示 ${yen(b.fee)}）</small></div><div class="row2"><button class="btn ghost sm" data-act="bid-no" data-arg="${i}">あきらめる</button><button class="btn primary sm" data-act="bid-yes" data-arg="${i}" ${me().money < b.counter ? "disabled" : ""}>応じる</button></div></div>`).join("")}</section>`;
 }
 // 選手を探す（全リーグ）
+const PS_DPS = ["GK", "CB", "LB", "RB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "ST"];
 SHEETS.psearch = s => {
   s.pos = s.pos || ""; s.min = s.min ?? 75; s.age = s.age ?? 99; s.price = s.price ?? 0;
+  s.sk = s.sk || ""; s.foot = s.foot || ""; s.lg = s.lg || ""; s.pot = s.pot ?? 0; s.sort = s.sort || "ovr";
   const m = me(), list = [];
-  for (const t of G.teams) if (t !== m) for (const p of t.roster) {
-    if (p.retired || (s.pos && p.pos !== s.pos) || getOvr(p) < s.min || p.age > s.age || (s.price && p.value > m.money)) continue;
+  const posOk = p => !s.pos || (["GK", "DF", "MF", "FW"].includes(s.pos) ? p.pos === s.pos : dpsOf(p).includes(s.pos));
+  const skOk = p => !s.sk || (s.sk === "has" ? !!p.skill : s.sk === "rare" ? !!(p.skill && p.is_rare) : p.skill === s.sk);
+  const lgOk = t => !s.lg || (s.lg === "other" ? !t.country || !countryInfo(t.country) : `${t.country}${t.division}` === s.lg || t.country === s.lg);
+  for (const t of G.teams) if (t !== m && lgOk(t)) for (const p of t.roster) {
+    if (p.retired || !posOk(p) || getOvr(p) < s.min || p.age > s.age || (s.price && p.value > m.money)) continue;
+    if (!skOk(p) || (s.foot && (p.foot || "R") !== s.foot) || (s.pot && (p.potential || 0) < s.pot)) continue;
     list.push([p, t]);
   }
-  list.sort((a, b) => getOvr(b[0]) - getOvr(a[0]));
-  const top = list.slice(0, 40); s.res = top;
+  const SORTS = { ovr: (a, b) => getOvr(b[0]) - getOvr(a[0]), pot: (a, b) => (b[0].potential || 0) - (a[0].potential || 0) || getOvr(b[0]) - getOvr(a[0]),
+    young: (a, b) => a[0].age - b[0].age || getOvr(b[0]) - getOvr(a[0]), cheap: (a, b) => a[0].value - b[0].value, exp: (a, b) => b[0].value - a[0].value };
+  list.sort(SORTS[s.sort] || SORTS.ovr);
+  const top = list.slice(0, 60); s.res = top;
   const chips = (key, opts) => `<div class="chiprow">${opts.map(([v, l]) => `<button class="${s[key] === v ? "on" : ""}" data-act="ps-set" data-arg="${key}:${v}">${l}</button>`).join("")}</div>`;
+  const nAdv = [s.sk, s.foot, s.lg, s.pot, s.sort !== "ovr"].filter(Boolean).length;
+  const skNames = Object.keys(PLAYER_SKILLS);
+  const lgOpts = [["", "全リーグ"], ...COUNTRIES.flatMap(c => [[`${c.id}1`, c.leagues[0]], [`${c.id}2`, c.leagues[1]]])];
+  const adv = s.adv ? `<div class="psadv">
+    <label class="pssel">スキル <select id="psSkill"><option value="">指定なし</option><option value="has" ${s.sk === "has" ? "selected" : ""}>スキル持ち</option><option value="rare" ${s.sk === "rare" ? "selected" : ""}>【極】スキル持ち</option>${skNames.map(k => `<option value="${h(k)}" ${s.sk === k ? "selected" : ""}>${h(k)}</option>`).join("")}</select></label>
+    <label class="pssel">リーグ <select id="psLg">${lgOpts.map(([v, l]) => `<option value="${v}" ${s.lg === v ? "selected" : ""}>${h(l)}</option>`).join("")}</select></label>
+    ${chips("foot", [["", "利き足すべて"], ["R", "右足"], ["L", "左足"]])}
+    ${chips("pot", [[0, "将来性すべて"], [70, "B以上"], [80, "A以上"], [90, "A+以上"], [95, "S"]])}
+    ${chips("sort", [["ovr", "総合値順"], ["pot", "将来性順"], ["young", "若い順"], ["cheap", "安い順"], ["exp", "高い順"]])}
+  </div>` : "";
   return { title: "🔍 選手を探す", body: `${inWindow() ? "" : `<p class="muted small">今は移籍期間外です（オファーは7・8月と1月）。</p>`}
     ${chips("pos", [["", "全員"], ["GK", "GK"], ["DF", "DF"], ["MF", "MF"], ["FW", "FW"]])}
-    ${chips("min", [[70, "総合70+"], [75, "75+"], [80, "80+"], [85, "85+"]])}
-    ${chips("age", [[99, "年齢すべて"], [23, "23歳以下"], [27, "27歳以下"], [30, "30歳以下"]])}
+    ${chips("pos", PS_DPS.filter(d => d !== "GK").map(d => [d, d]))}
+    ${chips("min", [[60, "総合60+"], [65, "65+"], [70, "70+"], [75, "75+"], [80, "80+"], [85, "85+"], [90, "90+"]])}
+    ${chips("age", [[99, "年齢すべて"], [19, "19歳以下"], [21, "21歳以下"], [23, "23歳以下"], [27, "27歳以下"], [30, "30歳以下"]])}
     ${chips("price", [[0, "価格すべて"], [1, "資金で買える"]])}
-    <p class="muted small">${list.length}人${list.length > 40 ? "（上位40人を表示）" : ""}</p>
-    <div class="pslist">${top.map(([p, t], i) => `<button class="sbrow wide" data-act="ps-view" data-arg="${i}"><span class="pos pos-${p.pos}">${posTxt(p)}</span><b>${h(p.name)}<small> ${p.age}歳 · ${h(t.name)}${p.skill ? ` · <span class="mskill ${p.is_rare ? "rare" : ""}">★${h(p.skill)}</span>` : ""}</small></b><em>${getOvr(p)}</em><span class="psval">${yen(p.value)}</span></button>`).join("")}</div>` };
+    <button class="btn ghost wide pstoggle" data-act="ps-adv">${s.adv ? "▴ 詳細条件を閉じる" : "▾ 詳細条件（スキル・リーグ・利き足・将来性・並び順）"}${nAdv ? `（${nAdv}件指定中）` : ""}</button>
+    ${adv}
+    <div class="ps-cnt"><p class="muted small">${list.length}人${list.length > 60 ? "（上位60人を表示）" : ""}</p>${nAdv || s.pos || s.age !== 99 || s.price || s.min !== 75 ? `<button class="linkbtn" data-act="ps-clear">条件をリセット</button>` : ""}</div>
+    <div class="pslist">${top.map(([p, t], i) => `<button class="sbrow wide" data-act="ps-view" data-arg="${i}"><span class="pos pos-${p.pos}">${posTxt(p)}</span><b>${h(p.name)}<small> ${p.age}歳 · ${(p.foot || "R") === "L" ? "左" : "右"} · <span class="${potClass(p.potential)}">${potRank(p.potential)}</span> · ${h(t.name)}${p.skill ? ` · <span class="mskill ${p.is_rare ? "rare" : ""}">★${h(p.skill)}</span>` : ""}</small></b><em>${getOvr(p)}</em><span class="psval">${yen(p.value)}</span></button>`).join("")}</div>` };
 };
 Object.assign(ACTIONS, {
-  "ps-set"(a) { const s = topSheet(), [k, v] = a.split(":"); s[k] = k === "pos" ? v : Number(v); renderSheet(); },
+  "ps-set"(a) { const s = topSheet(), i = a.indexOf(":"), k = a.slice(0, i), v = a.slice(i + 1); s[k] = ["pos", "foot", "sort", "sk", "lg"].includes(k) ? v : Number(v); renderSheet(); },
+  "ps-adv"() { const s = topSheet(); s.adv = !s.adv; renderSheet(); },
+  "ps-clear"() { const s = topSheet(); Object.assign(s, { pos: "", min: 75, age: 99, price: 0, sk: "", foot: "", lg: "", pot: 0, sort: "ovr" }); renderSheet(); },
   "ps-view"(i) { const s = topSheet(), [p, t] = s.res[Number(i)]; openSheet({ kind: "player", p, team: t.name }); },
+});
+document.addEventListener("change", e => {
+  const id = e.target.id; if (id !== "psSkill" && id !== "psLg") return;
+  const s = topSheet(); if (!s || s.kind !== "psearch") return;
+  s[id === "psSkill" ? "sk" : "lg"] = e.target.value; renderSheet();
 });
 
 // =====================================================================
@@ -8243,7 +8453,8 @@ function wcGroupsHTML(groups, myNat) {   // groups: [[name, w, d, l, gf, ga, pts
 }
 function wcBracketHTML(rounds, next, nextName, myNat) {   // rounds: [{name, res:[[a,b,x,y,pk]]}]  next: [[teamA, teamB]] これからの試合
   const row = (a, b, x, y, pk) => { const wa = x != null && x > y, wb = x != null && !wa;
-    return `<div class="bk"><span class="${wa ? "w" : ""} ${a === myNat ? "mine" : ""}">${fl(a)}${h(a)}</span><b>${x != null ? `${x}-${y}${pk ? "<small>PK</small>" : ""}` : "vs"}</b><span class="${wb ? "w" : ""} ${b === myNat ? "mine" : ""}">${fl(b)}${h(b)}</span></div>`; };
+    const d = pk && typeof pk === "object" ? pk : null;   // 延長・PKの本当のスコア（古い記録は true）
+    return `<div class="bk"><span class="${wa ? "w" : ""} ${a === myNat ? "mine" : ""}">${fl(a)}${h(a)}</span><b>${x != null ? (d ? `${d.hs}-${d.as}${d.pk ? `<small>PK${d.pk[0]}-${d.pk[1]}</small>` : "<small>延長</small>"}` : `${x}-${y}${pk ? "<small>PK</small>" : ""}`) : "vs"}</b><span class="${wb ? "w" : ""} ${b === myNat ? "mine" : ""}">${fl(b)}${h(b)}</span></div>`; };
   return rounds.map(r => `<div class="bkr"><h4>${h(r.name)}</h4>${r.res.map(([a, b, x, y, pk]) => row(a, b, x, y, pk)).join("")}</div>`).join("")
     + (next && next.length ? `<div class="bkr next"><h4>${h(nextName)}（これから）</h4>${next.map(([a, b]) => row(a.name, b.name)).join("")}</div>` : "");
 }
@@ -8268,25 +8479,41 @@ SHEETS.fa = s => {
     <h3 class="sh">契約年数</h3><div class="chiprow">${[1, 2, 3, 4, 5].map(y => chip("yr", y, `${y}年`)).join("")}</div>
     <h3 class="sh">提示する週給</h3><div class="chiprow">${[90, 100, 110, 120].map(r => chip("rate", r, `${r}%`)).join("")}</div>
     <p>提示：契約金 <b>${yen(bonus)}</b> · 週給 <b>${yen(w)}</b> · ${s.yr}年　<span class="muted small">合意の見込み：${ch >= .75 ? "高い" : ch >= .45 ? "五分五分" : "低い"}</span></p>
-    ${p.faNo === G.date ? `<p class="bad small">今日はもう断られました。明日以降に、条件を上げてもう一度提示できます。</p>` : m.money < bonus ? `<p class="bad">資金が足りません（契約金 ${yen(bonus)}）。</p>` : `<button class="btn primary wide" data-act="fa-offer">この条件で提示する</button>`}` };
+    ${bidOf(p) ? `<p class="small">提示の状況：<b>${{ wait: "回答待ち（1〜2日）", club_no: "成立しませんでした", player_no: "断られました", done: "契約しました" }[bidOf(p).status] || ""}</b></p>` : m.money < bonus ? `<p class="bad">資金が足りません（契約金 ${yen(bonus)}）。</p>` : `<button class="btn primary wide" data-act="fa-offer">この条件で提示する</button>`}` };
 };
 Object.assign(ACTIONS, {
   "fa-set"(a) { const [k, v] = a.split(":"); topSheet()[k] = Number(v); renderSheet(); },
   "fa-offer"() {
-    const s = topSheet(), p = s.p, it = s.it, m = me(); if (!p || !it || p.faNo === G.date) return;
+    // 無所属の選手への提示：回答は1〜2日後（獲得オファーと同じく「📨 獲得オファー」に回答待ちで並ぶ）
+    const s = topSheet(), p = s.p, it = s.it, m = me(); if (!p || !it || bidOf(p)) return;
     const bonus = faBonus(p, it); if (m.money < bonus || m.roster.length >= MAX_ROSTER) return;
-    if (rnd() < faChance(p, s.rate, it)) {
-      m.money -= bonus;
-      const k = (G.freeAgents || []).indexOf(p); if (k >= 0) G.freeAgents.splice(k, 1);
-      if (it.legend) legendState().market = null;
-      p.ct = G.season_year + s.yr - 1; p.wage = Math.round(wageDemand(p) * s.rate / 100 / 10) * 10; p.sat = 75; p.req = false; p.rk = careerNow(p);
-      m.roster.push(p); const i = T.market.indexOf(it); if (i >= 0) T.market.splice(i, 1);
-      T.sheets.pop(); T.sheets.pop(); const top = topSheet(); if (top) top.msg = L(`${it.legend ? "🌟 伝説の名選手" : "✅"} ${p.name} と契約しました（契約金 ${yen(bonus)}・${s.yr}年・週給 ${yen(p.wage)}）`, "good");
-      toast(`${p.name} と契約しました`, "good");
-    } else { p.faNo = G.date; toast(`${p.name} は条件に納得しませんでした`, "bad"); }
-    persist(); renderSheet(); render();
+    uidOf(p);
+    (G.bids = G.bids || []).push({ fa: 1, uid: p.uid, legendId: it.legend ? p.legend : null, name: p.name, club: "無所属", fee: bonus, years: s.yr, rate: s.rate,
+      wage: Math.round(wageDemand(p) * s.rate / 100 / 10) * 10, due: addDays(G.date, randint(1, 2)), status: "wait", win: winKey() });
+    T.sheets.pop(); persist(); renderSheet(); render(); toast(`${p.name} に契約を提示しました（回答は1〜2日後）`, "good");
   },
+
 });
+
+// 無所属の選手の回答
+function faDecides(b) {
+  const m = me(), st = legendState();
+  let p = null;
+  if (b.legendId) p = st.market && st.market.id === b.legendId ? createLegend(b.legendId) : null;
+  else p = (G.freeAgents || []).find(q => q.uid === b.uid) || null;
+  if (!p) { b.status = "club_no"; return L(`📨 ${b.name} は、すでにほかのクラブと契約していました。`, "bad"); }
+  const it = { legend: !!b.legendId };
+  if (rnd() >= faChance(p, b.rate, it)) { b.status = "player_no"; return L(`📨 ${b.name} は条件に納得せず、契約を断りました。`, "bad"); }
+  if (m.money < b.fee) { b.status = "club_no"; return L(`📨 ${b.name} は合意しましたが、資金が足りず契約できませんでした。`, "bad"); }
+  if (m.roster.length >= MAX_ROSTER) { b.status = "club_no"; return L(`📨 ${b.name} は合意しましたが、登録人数が上限のため契約できませんでした。`, "bad"); }
+  m.money -= b.fee;
+  const k = (G.freeAgents || []).indexOf(p); if (k >= 0) G.freeAgents.splice(k, 1);
+  if (b.legendId) st.market = null;
+  p.ct = G.season_year + b.years - 1; p.wage = b.wage; p.sat = 75; p.req = false; p.rk = careerNow(p); uidOf(p);
+  m.roster.push(p); if (T.market) T.market = T.market.filter(x => x.player !== p && !(b.legendId && x.legend)); T.starters = null;
+  b.status = "done";
+  return L(`${b.legendId ? "🌟 伝説の名選手" : "✅"} ${b.name} と契約しました（契約金 ${yen(b.fee)}・${b.years}年・週給 ${yen(b.wage)}）`, "good");
+}
 
 </script>
 
